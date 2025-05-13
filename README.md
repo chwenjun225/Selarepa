@@ -1,0 +1,1 @@
+Method and device for foundation multi-agent system
