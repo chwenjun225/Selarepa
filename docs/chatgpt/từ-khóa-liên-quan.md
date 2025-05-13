@@ -98,7 +98,7 @@ Dưới đây là 100 từ khóa tiếng Anh liên quan đến nghiên cứu v�
 96. Gated Interconnect Topology
 97. Hardware Performance Metrics
 98. Training Time Reduction
-99. Resource Utilization Analysis
-100. Autonomous AI Hardware
+99. Resource Utilization Analysis <>
+100. Autonomous AI Hardware <đã có cái nhìn tổng quan>
 
 Bạn có thể kết hợp các từ khóa này khi tra cứu cơ sở dữ liệu khoa học (IEEE Xplore, arXiv, ACM Digital Library) hoặc tìm kiếm trong kho bằng sáng chế USPTO/Google Patents. Nếu cần thêm chi tiết hay giúp gom nhóm thành các chủ đề nhỏ, cứ báo mình nhé!
