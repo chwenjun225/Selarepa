@@ -1,0 +1,1 @@
+folder này chứa code để load các mô hình ngôn ngữ lớn, nó hoạt động như một vùng nhân chứa các LLM

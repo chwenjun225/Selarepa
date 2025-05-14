@@ -1,0 +1,1 @@
+folder này chứa các thành phần bộ não, từng agent hoạt động như một cá thể riêng biệt
