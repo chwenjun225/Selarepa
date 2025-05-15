@@ -1,3 +1,5 @@
+![KhaAnh](./assets/logo-transparent.png)
+
 # Method and device for foundation agents
 
 ## ABSTRACT
