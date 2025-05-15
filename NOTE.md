@@ -5,6 +5,7 @@
 
 
 # 2 Describe the past solutions and disadvantages 
+
 ## 2.1 Hướng nhìn tổng quan về các tác phẩm nghiên cứu liên quan
 
 **Hiện nay, các công trình nghiên cứu về trí tuệ nhân tạo lấy cảm hứng từ não bộ (brain-inspired AI) chủ yếu tập trung vào các hướng như sau**
@@ -15,7 +16,7 @@
 
 **Hiện nay, các công trình nghiên cứu về mạng 6G chủ yếu tập trung vào các hướng như sau**
 - Cần tìm đọc các bài báo liên quan đến mạng 6G khoảng 30 bài
-1. ...
+1. AI-Native: Xây dựng các hệ thống trí tuệ nhân tạo tích hợp vào trong mạng 6G, tự động hóa hoàn toàn các thao tác mạng 6G
 2. ...
 3. ...
 
@@ -30,3 +31,4 @@
 1. ...
 2. ...
 3. ...
+
