@@ -1,1 +1,1 @@
-folder này chứa các thành phần bộ não, từng agent hoạt động như một cá thể riêng biệt
+Enviroment_State -> Perception -> Cognition -> Learning -> Action_Execution (Optional) -> Enviroment_Transistion 
