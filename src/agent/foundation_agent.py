@@ -3,19 +3,8 @@ import heapq
 from typing import Dict, List, Any, Optional, TypedDict
 
 
-class World:
-    """Thế giới với các hệ thống xã hội bao 
-    gồm cả môi trường và các thực thế thông 
-    minh (AI hoặc con người)"""
-    pass 
-
-
-class State:
-    """Tập hợp trạng thái của môi trường (environment)."""
-    pass
-
-
 class Agent:
+    """Tác nhân trí tuệ nhân tạo, có khả năng suy nghĩ, cảm nhận, đưa ra hành động."""
     def __init__(self):
         pass 
 
@@ -36,9 +25,3 @@ class Agent:
 
     def environment_transition(self):
         pass 
-
-
-class Actuator:
-    def __init__(self):
-        pass
-        

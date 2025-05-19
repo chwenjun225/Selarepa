@@ -25,7 +25,7 @@ class BaseAgent(ABC):
     def _initialize_llm(
             self, agent_name: str, 
             config_path: Optional[str] = None
-        ) -> tuple[BaseLLM, Dict[str, Any]]:
+        ) -> tuple[BaseLLM, Dict[str, str]]:
         """Initialize the LLM for this agent.
         
         Args:
@@ -39,15 +39,15 @@ class BaseAgent(ABC):
         if config_path is None:
             config_path = "config/agent_config.yaml"
             print(f"Using default config from {config_path}")
-            
+        
         config = LLMFactory.load_config(config_path)
-        
-        # Check for agent-specific configuration
-        agent_config = config.get("agent_llms", {}).get(agent_name.lower())
-        
+
+        # Check for agent-specific configuration if available, otherwise return {} empty dictionaries
+        agent_config = config.get("agent_llms", {}).get(agent_name.lower()) 
+
         # Use agent-specific config if available, otherwise use default
         llm_config = agent_config if agent_config else config.get("llm", {})
-        
+
         # Verify api_key is provided in config
         if ("api_key" not in llm_config or not llm_config["api_key"]) and (llm_config["type"] not in ["huggingface", "local"]):
             raise ValueError("API key must be specified directly in the config file")

@@ -12,7 +12,7 @@ class LLMFactory:
     """Factory class for creating LLM instances."""
     
     @staticmethod
-    def create_llm(config: Dict[str, Any]) -> BaseLLM:
+    def create_llm(config: Dict[str, str]) -> BaseLLM:
         """Create an LLM instance based on configuration.
         
         Args:
@@ -76,7 +76,7 @@ class LLMFactory:
             raise ValueError(f"Unsupported LLM type: {llm_type}")
     
     @staticmethod
-    def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
+    def load_config(config_path: Optional[str] = None) -> Dict[str, str]:
         """Load LLM configuration from file.
         
         Args:

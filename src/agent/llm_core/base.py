@@ -6,7 +6,12 @@ class BaseLLM(ABC):
     """Base class for LLM wrappers."""
 
     @abstractmethod
-    def generate(self, messages:List[Dict[str,str]], temperature:float=0.7, max_output_token:Optional[int]=None)-> str:
+    def generate(
+            self, 
+            messages:List[Dict[str,str]], 
+            temperature:float=0.7, 
+            max_output_token:Optional[int]=None
+        )-> str:
         """Generate a response from the LLM.
         
         Args:
