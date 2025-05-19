@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, List
-import os
-from pathlib import Path
 
 from llm_core.factory import LLMFactory
 from llm_core.base import BaseLLM 
@@ -110,7 +108,7 @@ class BaseAgent(ABC):
             temperature=self.llm_params["temperature"],
             max_tokens=self.llm_params["max_output_tokens"]
         )
-    
+
     @abstractmethod
     def process(self, *args, **kwargs) -> Any:
         """Process the input and generate output.

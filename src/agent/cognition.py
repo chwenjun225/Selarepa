@@ -1,5 +1,5 @@
 from typing import Dict, Any, Optional, Tuple
-from base import BaseAgent
+from agent.base import BaseAgent
 
 
 class Cognition(BaseAgent):

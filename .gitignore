@@ -1,0 +1,63 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Cython debug symbols
+cython_debug/
+
+# Virtual environment
+.env/
+.venv/
+env/
+venv/
+ENV/
+Pipfile.lock
+poetry.lock
+
+# VS Code settings
+.vscode/
+
+# Pytest / coverage / logs
+.pytest_cache/
+coverage.*
+.cache/
+nosetests.xml
+*.log
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+*.manifest
+*.spec
+
+# IDEs / Editors
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Model weights or data dumps
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.h5
+*.npz
+
+# Temporary files
+*.swp
+*.tmp
+*~
+
+# Output PDFs or compiled docs
+*.pdf
+docs/_build/

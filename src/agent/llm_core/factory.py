@@ -41,7 +41,7 @@ class LLMFactory:
             provider_map = {
                 "openai": "openai",
                 "claude": "claude",
-                "gemini": "gemini"
+                "gemini": "gemini", 
             }
             provider_key = provider_map.get(llm_type, llm_type)
             provider_limits = global_config.get("rate_limits", {}).get(provider_key, {})

@@ -1,5 +1,5 @@
 import fire 
-from cognition import Cognition 
+from agent.cognition import Cognition 
 
 
 def main():
