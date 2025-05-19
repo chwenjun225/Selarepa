@@ -3,8 +3,9 @@ from typing import Any, Dict, Optional, List
 import os
 from pathlib import Path
 
-from .llm_core.factory import LLMFactory
-from .llm_core.base import BaseLLM
+from llm_core.factory import LLMFactory
+from llm_core.base import BaseLLM 
+
 
 class BaseAgent(ABC):
     """Base class for all agents in the docstring generation system."""
