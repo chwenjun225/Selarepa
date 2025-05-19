@@ -119,18 +119,18 @@ class Cognition(BaseAgent):
         return self.generate_response()
 
     def process(
-        self,
-        previous_state: Dict[str, Any],
-        previous_action: Any,
-        current_observation: Any
-    ) -> Tuple[Dict[str, Any], Any]:
+            self,
+            previous_state: Dict[str, Any],
+            previous_action: Any,
+            current_observation: Any
+        ) -> Tuple[Dict[str, Any], Any]:
         """Thực hiện một chu kỳ nhận thức:
             1. Cập nhật memory, world_model, emotion, goal, reward
             2. Suy luận hành động tiếp theo
 
         Args:
-            previous_state: dict chứa các thành phần của trạng thái tinh thần trước
-            previous_action: hành động đã thực hiện ở bước trước
+            previous_state: dict chứa các thành phần của trạng thái tinh thần ở thời điểm t-1
+            previous_action: hành động đã thực hiện ở thời điểm t-1
             current_observation: quan sát mới tại thời điểm t
 
         Returns:
