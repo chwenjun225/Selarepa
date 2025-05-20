@@ -3,8 +3,8 @@ from .base import BaseAgent
 
 
 class Cognition(BaseAgent):
-    """Agent are responsible for cognition, mental state updating, and action reasoning."""
-    
+    """Agent responsible for cognition, mental state updating, and action reasoning."""
+
     def __init__(self, name: Optional[str] = "Cognition", config_path: Optional[str]=None) -> None:
         """Initialize the Cognition Agent.
 
@@ -102,7 +102,6 @@ class Cognition(BaseAgent):
         """Thực hiện một chu kỳ cognition:
             1. Cập nhật memory, world_model, emotion, goal, reward 
             2. Suy luận đưa ra hành động tiếp theo 
-
 
         Args:
             previous_state: dictionaries chứa các thành phần mental state ở thời điểm t-1

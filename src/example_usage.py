@@ -45,3 +45,27 @@ def main():
 
 if __name__ == "__main__":
     fire.Fire(main)
+
+
+"""
+không cần phải build từng submodule con trong cognition, ta đã có lớp base agent rồi, ta sẽ biến các submodule của bộ nhớ này thành các attribute hoặc method nhỉ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""

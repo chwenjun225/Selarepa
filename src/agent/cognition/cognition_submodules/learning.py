@@ -1,2 +1,0 @@
-class Learning:
-    pass 
