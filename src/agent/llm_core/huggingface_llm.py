@@ -2,7 +2,7 @@ from typing import List, Dict, Any, Optional
 from openai import OpenAI
 import torch
 import tiktoken
-from .base import BaseLLM
+from .base_llm_core import BaseLLM
 
 class HuggingFaceLLM(BaseLLM):
     """HuggingFace model wrapper using vLLM, Ollama, etc with OpenAI-compatible API."""

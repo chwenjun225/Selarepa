@@ -1,6 +1,6 @@
 from typing import List, Dict, Any, Optional
 import anthropic
-from .base import BaseLLM
+from .base_llm_core import BaseLLM
 from .rate_limiter import RateLimiter
 import logging
 

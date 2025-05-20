@@ -1,7 +1,8 @@
 from typing import Dict, Any, Optional, Tuple 
-from .base import BaseAgent 
+from ..base_agent import BaseAgent 
+from .cognition_submodules.memory import Memory 
 
-
+# BaseAgent vốn đã có sẵn bộ nhớ của nó rồi, vậy khi ta tạo ra module memory, vậy mục đích của module này nhằm chứa các phương thức giúp quản lý memory từ Cognition 
 class Cognition(BaseAgent):
     """Agent responsible for cognition, mental state updating, and action reasoning."""
 
@@ -12,9 +13,9 @@ class Cognition(BaseAgent):
             config_path: Optional path to the configuration file
         """
         super().__init__(name=name, config_path=config_path)
-        
-        # Base prompt for all cognition steps 
-        self.base_prompt = ( # TODO: Optimize this prompt
+
+        # General system prompt for all cognition steps 
+        self.base_prompt = ( # TODO: Need optimize this prompt
             "You are the Cognition Agent, inspired by human brain cognitive architecture. "
             "You update components of mental state and decide next actions."
         )
@@ -24,7 +25,7 @@ class Cognition(BaseAgent):
 
     def memory(self, previous_memory: Any, previous_action: Any, current_observation: Any) -> Any:
         """Cập nhật thành phần Memory dựa trên memory và action tại thời điểm t-1, và observation tại thời điểm t."""
-        
+
         prompt = ( # TODO: Optimize this prompt 
             f"Previous memory:\n{previous_memory}\n\n" #TODO: Cần làm rõ hơn phần này previous memory include (world_model, memory, emotional, goal, reward)
             f"Previous action taken:\n{previous_action}\n\n"

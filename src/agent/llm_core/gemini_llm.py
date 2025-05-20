@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional
 import tiktoken
 import google.generativeai as genai
-from .base import BaseLLM
+from .base_llm_core import BaseLLM
 from .rate_limiter import RateLimiter
 
 class GeminiLLM(BaseLLM):

@@ -1,4 +1,4 @@
-from .base import BaseLLM
+from .base_llm_core import BaseLLM
 from .openai_llm import OpenAILLM
 from .claude_llm import ClaudeLLM
 from .huggingface_llm import HuggingFaceLLM

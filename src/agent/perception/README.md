@@ -8,3 +8,5 @@ vậy các module này là gì
     bất kể thông tin dù là text hoặc image thì đều phải đi qua một bộ sinh cảm nhận observation. Sau đó mới lấy observation đưa vào module sau 
 
 (2) lấy observation đưa vào cognition module 
+
+có vẻ tạm thời ta đã hoàn thành sơ bộ module cognition, giờ ta sẽ sang module perception. 

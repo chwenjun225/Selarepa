@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional
 import openai
 import tiktoken
-from .base import BaseLLM
+from .base_llm_core import BaseLLM
 from .rate_limiter import RateLimiter
 
 class OpenAILLM(BaseLLM):
