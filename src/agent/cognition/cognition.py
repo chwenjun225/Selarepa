@@ -7,35 +7,48 @@ class Cognition(BaseAgent):
     """Agent responsible for cognition, mental state updating, and action reasoning."""
 
     def __init__(self, name: Optional[str] = "Cognition", config_path: Optional[str]=None) -> None:
-        """Initialize the Cognition Agent.
+        """Initialize the Cognition agent with a system prompt and a Memory submodule.
 
         Args:
-            config_path: Optional path to the configuration file
+            name: Name of the agent.
+            config_path: Path to the agent's configuration file.
         """
         super().__init__(name=name, config_path=config_path)
 
-        # General system prompt for all cognition steps 
+        # Base system prompt for all cognition steps
         self.base_prompt = ( # TODO: Need optimize this prompt
             "You are the Cognition Agent, inspired by human brain cognitive architecture. "
             "You update components of mental state and decide next actions."
         )
 
         # Add system prompt to agent memory 
-        self.add_to_memory("system", self.base_prompt) # TODO: This Memory need to be update with cognition_submodules/memory.py  
+        self.add_to_memory("system", self.base_prompt) # TODO: This Memory need to be update with cognition_submodules/memory.py 
+
+        # Initialize the Memory submodule
+        self.memory_module = Memory()
 
     def memory(self, previous_memory: Any, previous_action: Any, current_observation: Any) -> Any:
-        """Cập nhật thành phần Memory dựa trên memory và action tại thời điểm t-1, và observation tại thời điểm t."""
+        """
+        Delegate the memory update to the Memory submodule.
 
-        prompt = ( # TODO: Optimize this prompt 
-            f"Previous memory:\n{previous_memory}\n\n" #TODO: Cần làm rõ hơn phần này previous memory include (world_model, memory, emotional, goal, reward)
-            f"Previous action taken:\n{previous_action}\n\n"
-            f"Current observation:\n{current_observation}\n\n"
-            "Update the agent's memory component accordingly."
+        Args:
+            previous_memory: The agent's memory content from the previous step.
+            previous_action: The action taken in the previous step.
+            current_observation: The latest observation.
+
+        Returns:
+            The updated memory content.
+        """
+
+        # Sync the memory submodule's content
+        self.memory_module.content = previous_memory or self.memory_module.content
+
+        # Invoke LLM to generate response
+        return self.memory_module.update(
+            agent=self,
+            previous_action=previous_action,
+            current_observation=current_observation
         )
-
-        # Add user prompt to memory 
-        self.add_to_memory("user", prompt)
-        return self.generate_response()
 
     def world_model(self, previous_world_model: Any, previous_action: Any, current_observation: Any) -> Any:
         """Cập nhật World Model dựa trên world model và action tại thời điểm t-1, và observation tại thời điểm t"""

@@ -3,20 +3,35 @@ from ...base_agent import BaseAgent
 
 
 class Memory:
-    """Encapsulates the agent's Memory component.
+    """
+    Encapsulates the agent's cognitive memory component.
 
     Attributes:
-        content: lưu trữ trạng thái memory hiện tại.
-
-    Methods:
-        update(): xây dựng prompt dựa trên action và observation, rồi gọi agent.generate_response().
+        content: The internal representation of the agent's memory (e.g., summary string, list of facts).
     """
 
     def __init__(self, initial_content: Any = None):
         self.content = initial_content or ""
 
-    def update(self, agent: BaseAgent, previous_action: Any, current_observation: Any) -> Any:
-        # Build the user prompt
+    def update(
+        self,
+        agent: BaseAgent,
+        previous_action: Any,
+        current_observation: Any
+    ) -> Any:
+        """
+        Build a prompt to update the memory component, send it through the agent's LLM,
+        and store the updated result.
+
+        Args:
+            agent: The Cognition agent instance, used for LLM calls.
+            previous_action: The action taken in the previous step.
+            current_observation: The latest observation from the environment.
+
+        Returns:
+            The updated memory content.
+        """
+        # Construct the user prompt
         prompt = (
             f"Previous memory:\n{self.content}\n\n"
             f"Previous action taken:\n{previous_action}\n\n"
@@ -24,10 +39,10 @@ class Memory:
             "Update the agent's memory component accordingly."
         )
 
-        # Push to agent's memory buffer and call LLM
+        # Append the prompt to the agent's chat history and call the LLM
         agent.add_to_memory("user", prompt)
-        updated = agent.generate_response()
+        updated_content = agent.generate_response().strip()
 
-        # Store & return the new memory state
-        self.content = updated.strip()
+        # Save and return the new memory
+        self.content = updated_content
         return self.content
