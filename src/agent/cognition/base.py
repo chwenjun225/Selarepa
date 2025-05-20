@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, List
 
-from llm_core.factory import LLMFactory
-from llm_core.base import BaseLLM 
+from .llm_core.factory import LLMFactory
+from .llm_core.base import BaseLLM 
 
 
 class BaseAgent(ABC):

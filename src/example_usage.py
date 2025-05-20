@@ -4,7 +4,7 @@ from agent.cognition.cognition import Cognition
 
 def main():
     # 1. Initialize the Cognition agent
-    agent = Cognition(config_path="/home/chwenjun225/projects/KhaAnh/config/agent_config.yaml")
+    agent = Cognition(name="Cognition")
 
     # 2. Initial mental state 
     # TODO: Mỗi thành phần như memory, world_model, emotion, reward, goal cần phải là một class, 

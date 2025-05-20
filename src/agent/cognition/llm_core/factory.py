@@ -89,7 +89,7 @@ class LLMFactory:
             FileNotFoundError: If the configuration file doesn't exist
         """
         if config_path is None:
-            config_path = str(Path(__file__).parent.parent.parent.parent / "config" / "agent_config.yaml")
+            config_path = str(Path(__file__).parent.parent.parent.parent.parent / "config" / "agent_config.yaml")
         
         if not Path(config_path).exists():
             raise FileNotFoundError(f"Configuration file not found: {config_path}")

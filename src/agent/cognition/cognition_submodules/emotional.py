@@ -1,0 +1,2 @@
+class Emotional:
+    pass 

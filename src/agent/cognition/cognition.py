@@ -1,40 +1,33 @@
-from typing import Dict, Any, Optional, Tuple
-from base import BaseAgent
+from typing import Dict, Any, Optional, Tuple 
+from .base import BaseAgent 
 
 
 class Cognition(BaseAgent):
     """Agent are responsible for cognition, mental state updating, and action reasoning."""
     
-    def __init__(self, config_path: Optional[str]=None) -> None:
+    def __init__(self, name: Optional[str] = "Cognition", config_path: Optional[str]=None) -> None:
         """Initialize the Cognition Agent.
 
         Args:
             config_path: Optional path to the configuration file
         """
-        super().__init__("Cognition", config_path=config_path)
+        super().__init__(name=name, config_path=config_path)
         
         # Base prompt for all cognition steps 
-        self.base_prompt = (
+        self.base_prompt = ( # TODO: Optimize this prompt
             "You are the Cognition Agent, inspired by human brain cognitive architecture. "
             "You update components of mental state and decide next actions."
         )
 
-        self.add_to_memory("system", self.base_prompt)
+        # Add system prompt to agent memory 
+        self.add_to_memory("system", self.base_prompt) # TODO: This Memory need to be update with cognition_submodules/memory.py  
 
-    def memory(
-            self, 
-            previous_memory: Any, 
-            previous_action: Any, 
-            current_observation: Any
-        ) -> Any:
-        """
-        Cập nhật thành phần Memory dựa trên memory và hành động tại 
-        thời điểm t-1, và observation (quan sát) tại thời điểm t.
-        """
+    def memory(self, previous_memory: Any, previous_action: Any, current_observation: Any) -> Any:
+        """Cập nhật thành phần Memory dựa trên memory và action tại thời điểm t-1, và observation tại thời điểm t."""
         
-        prompt = (
-            f"Previous memory:\n{previous_memory}\n\n"
-            f"Last action taken:\n{previous_action}\n\n"
+        prompt = ( # TODO: Optimize this prompt 
+            f"Previous memory:\n{previous_memory}\n\n" #TODO: Cần làm rõ hơn phần này previous memory include (world_model, memory, emotional, goal, reward)
+            f"Previous action taken:\n{previous_action}\n\n"
             f"Current observation:\n{current_observation}\n\n"
             "Update the agent's memory component accordingly."
         )
@@ -43,21 +36,13 @@ class Cognition(BaseAgent):
         self.add_to_memory("user", prompt)
         return self.generate_response()
 
-    def world_model(
-            self, 
-            previous_world_model: Any, 
-            previous_action: Any, 
-            current_observation: Any, 
-        ) -> Any:
-        """
-        Cập nhật World Model dựa trên world model và hành động tại 
-        thời điểm t-1, và observation (quan sát) tại thời điểm t.
-        """
+    def world_model(self, previous_world_model: Any, previous_action: Any, current_observation: Any) -> Any:
+        """Cập nhật World Model dựa trên world model và action tại thời điểm t-1, và observation tại thời điểm t"""
         prompt = (
-            f"Previous world model:\n{previous_world_model}\n\n"
-            f"Last action taken:\n{previous_action}\n\n"
+            f"Previous world model:\n{previous_world_model}" # TODO: Thành phần previous_emotion cần phải được lấy từ cognition_submodules/world_model.py
+            f"Previous action taken:\n{previous_action}\n\n"
             f"Current observation:\n{current_observation}\n\n"
-            "Update the internal representation of how the environment evolves."
+            "Update the internal representation of how the environment evolves." # TODO: Xác minh lại chỗ này xem có cần reasoning không, nếu có hãy sử dụng deepseek-r1
         )
 
         # Add user prompt to memory 
@@ -65,77 +50,70 @@ class Cognition(BaseAgent):
         return self.generate_response() 
     
     def emotion(self, previous_emotion: Any, current_observation: Any) -> Any:
-        """
-        Cập nhật Emotion component dựa trên trạng thái cảm xúc tại
-        thời điểm t-1, và observation tại thời điểm t.
-        """
+        """Cập nhật Emotion dựa trên emotion tại thời điểm t-1, và observation tại thời điểm t."""
         prompt = (
-            f"Previous emotion state:\n{previous_emotion}\n\n"
+            f"Previous emotion state:\n{previous_emotion}\n\n" # TODO: Thành phần previous_emotion cần phải được lấy từ cognition_submodules/emotion.py
             f"Current observation:\n{current_observation}\n\n"
-            "Determine the updated emotional state (valence, arousal, etc.)."
+            "Determine the updated emotional state (valence, arousal, etc)."
         )
 
         # Add user prompt to memory 
         self.add_to_memory("user", prompt)
         return self.generate_response()
-
+    
     def goal(self, previous_goal: Any, current_observation: Any) -> Any:
-        """
-        Cập nhật hoặc điều chỉnh Goal component dựa trên goal tại 
-        thời điểm t-1, và observation tại thời điểm t.
-        """
+        """Cập nhật hoặc điều chỉnh Goal dựa trên goal tại thời điểm t-1, và observation tại thời điểm t."""
         prompt = (
-            f"Previous goals/objective:\n{previous_goal}\n\n"
+            f"Previous goals:\n{previous_goal}\n\n"
             f"Current observation:\n{current_observation}\n\n"
             "Revise or propose new goals for the agent."
         )
         self.add_to_memory("user", prompt)
         return self.generate_response()
-
-    def reward(self, previous_reward: Any, previous_action: Any, current_observation: Any) -> Any:
-        """
-        Generate tín hiệu Reward/Learning dựa trên reward, action 
-        tại thời điểm t-1, và observation tại thời điểm t. 
-        """
+    
+    def reward(self, previous_reward:Any, previous_action: Any, current_observation: Any) -> Any:
+        """Generate tín hiệu Reward/Learning dựa trên reward, action tại thời điểm t-1, và observation tại thời điểm t."""
         prompt = (
             f"Previous reward signals:\n{previous_reward}\n\n"
-            f"Last action taken:\n{previous_action}\n\n"
+            f"Previous action taken:\n{previous_action}\n\n"
             f"Current observation:\n{current_observation}\n\n"
             "Produce the updated reward or learning signal."
         )
         # Add user prompt to memory 
         self.add_to_memory("user", prompt)
         return self.generate_response()
-
+    
     def reasoning(self, mental_state: Dict[str, Any]) -> Any:
-        """Suy luận hành động tiếp theo dựa trên toàn bộ trạng thái tinh thần."""
+        """Suy luận đưa ra hành động tiếp theo dựa trên toàn bộ trạng thái thần kinh của agent."""
         prompt = (
             f"Current mental state:\n{mental_state}\n\n"
             "Decide the next action the agent should take."
         )
-
-        # Add user prompt to memory 
+        # Add user prompt to memory
         self.add_to_memory("user", prompt)
         return self.generate_response()
-
+    
     def process(
-            self,
-            previous_state: Dict[str, Any],
-            previous_action: Any,
+            self, 
+            previous_state: Dict[str, Any], 
+            previous_action: Any, 
             current_observation: Any
-        ) -> Tuple[Dict[str, Any], Any]:
-        """Thực hiện một chu kỳ nhận thức:
-            1. Cập nhật memory, world_model, emotion, goal, reward
-            2. Suy luận hành động tiếp theo
+        ) -> Tuple[Dict[str, Any]]:
+        """Thực hiện một chu kỳ cognition:
+            1. Cập nhật memory, world_model, emotion, goal, reward 
+            2. Suy luận đưa ra hành động tiếp theo 
+
 
         Args:
-            previous_state: dict chứa các thành phần của trạng thái tinh thần ở thời điểm t-1
-            previous_action: hành động đã thực hiện ở thời điểm t-1
-            current_observation: quan sát mới tại thời điểm t
+            previous_state: dictionaries chứa các thành phần mental state ở thời điểm t-1
+            previous_action: action đã thực hiện ở thời điểm t-1
+            current_observation: observation tại thời điểm t
 
         Returns:
             Tuple[updated_state, next_action]
         """
+
+        # Update Cognition's submodules
         new_memory      = self.memory(previous_state.get("memory"), previous_action, current_observation)
         new_world_model = self.world_model(previous_state.get("world_model"), previous_action, current_observation)
         new_emotion     = self.emotion(previous_state.get("emotion"), current_observation)
@@ -150,5 +128,6 @@ class Cognition(BaseAgent):
             "goal":        new_goal,
         }
 
+        # From updated state, predict the next action, it's could be internal action (planning, decision-making) or external action (e.g. open the box, etc)
         next_action = self.reasoning(updated_state)
         return updated_state, next_action
