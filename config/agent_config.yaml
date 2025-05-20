@@ -31,7 +31,7 @@ llm:
 
     # Option 4: HuggingFace (for local models)
     type: "huggingface"
-    model: "Llama-3.2-11B-Vision-Instruct.Q4_K_M:latest" # "codellama/CodeLlama-34b-Instruct-hf"
+    model: "Llama-3.2-11B-Vision-Instruct.Q4_K_M:latest" # "DeepSeek-R1-Distill-Qwen-14B-Q4_K_M:latest" # "codellama/CodeLlama-34b-Instruct-hf" 
     api_base: "http://localhost:11434/v1"  # Local API endpoint
     api_key: "EMPTY"  # Can be empty for local models
     device: "cuda"  # Options: cuda, cpu
