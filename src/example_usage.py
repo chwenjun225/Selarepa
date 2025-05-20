@@ -1,5 +1,5 @@
 import fire 
-from agent.cognition import Cognition 
+from agent.cognition.cognition import Cognition 
 
 
 def main():
@@ -7,6 +7,8 @@ def main():
     agent = Cognition(config_path="/home/chwenjun225/projects/KhaAnh/config/agent_config.yaml")
 
     # 2. Initial mental state 
+    # TODO: Mỗi thành phần như memory, world_model, emotion, reward, goal cần phải là một class, 
+    # chứa các thuộc tính riêng mô phỏng hệ thống thần kinh nhận thức 
     previous_mental_state = {
         "memory": "",            # empty or default memory
         "world_model": "",       # empty or default world model
