@@ -7,7 +7,7 @@ def main():
     agent = Cognition(config_path="/home/chwenjun225/projects/KhaAnh/config/agent_config.yaml")
 
     # 2. Initial mental state 
-    previous_state = {
+    previous_mental_state = {
         "memory": "",            # empty or default memory
         "world_model": "",       # empty or default world model
         "emotion": "neutral",    # e.g., neutral emotional state
@@ -26,7 +26,7 @@ def main():
 
     # 5. Run one cognition cycle: update mental state and infer next action
     updated_state, next_action = agent.process(
-        previous_state,
+        previous_mental_state,
         previous_action,
         current_observation, 
     )

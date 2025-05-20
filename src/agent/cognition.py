@@ -1,9 +1,9 @@
 from typing import Dict, Any, Optional, Tuple
-from agent.base import BaseAgent
+from src.agent.base import BaseAgent
 
 
 class Cognition(BaseAgent):
-    """Agent chịu trách nhiệm về nhận thức, cập nhật trạng thái tinh thần và suy luận hành động."""
+    """Agent are responsible for cognition, mental state updating, and action reasoning."""
     
     def __init__(self, config_path: Optional[str]=None) -> None:
         """Initialize the Cognition Agent.
@@ -16,7 +16,7 @@ class Cognition(BaseAgent):
         # Base prompt for all cognition steps 
         self.base_prompt = (
             "You are the Cognition Agent, inspired by human brain cognitive architecture. "
-            "Your update components of mental state and decide next actions."
+            "You update components of mental state and decide next actions."
         )
 
         self.add_to_memory("system", self.base_prompt)
