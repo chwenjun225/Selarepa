@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+        "name": "Debug example as module",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "examples.example_perception_usage",
+        "justMyCode": true,
+        "env": {
+            "PYTHONPATH": "src"
+        }
+        }
+    ]
+}

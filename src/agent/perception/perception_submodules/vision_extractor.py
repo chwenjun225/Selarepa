@@ -27,21 +27,19 @@ class VisionExtractor:
 
         # System prompt to switch to multi-modal model if needed
         agent.add_to_memory(
-            "system",
-            "Describe the contents of an image."
+            role="system",
+            content=("""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+You are a helpful assistant<|eot_id|>""")
         )
 
         # User prompt with the image data
-        prompt = (
-            "You are a vision-enabled assistant. I will provide an image encoded in base64 format. "
-            "Your task is to look at the image and provide a detailed description of what you see. "
-            "Please describe the main objects, their colors, relative positions, background, actions (if any), "
-            "and the overall context of the scene.\n\n"
-            "Be as descriptive as possible, and include any notable attributes or relationships between objects.\n\n"
-            "Here is the image:\n"
-            f"<IMAGE>\n{image_b64}\n</IMAGE>"
+        agent.add_to_memory(
+            role="user", 
+            content=f"""<|begin_of_text|><|start_header_id|>user<|end_header_id|>
+
+<|image|>Describe this image: {image_b64}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"""
         )
-        agent.add_to_memory("user", prompt)
 
         # Generate with timeout
         description = agent.generate_response()

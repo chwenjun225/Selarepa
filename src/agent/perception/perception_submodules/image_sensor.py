@@ -1,6 +1,6 @@
 import numpy as np 
 import cv2 
-from typing import Any
+from PIL import Image
 
 class ImageSensor:
     """
@@ -27,7 +27,7 @@ class ImageSensor:
             return frame
         else:
             # load from file
-            frame = cv2.imread(self.source)
+            frame = Image.open(self.source)
             if frame is None:
                 raise FileNotFoundError(f"Image file not found: {self.source}")
             return frame

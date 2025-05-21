@@ -18,9 +18,6 @@ ENV/
 Pipfile.lock
 poetry.lock
 
-# VS Code settings
-.vscode/
-
 # Pytest / coverage / logs
 .pytest_cache/
 coverage.*

@@ -14,7 +14,7 @@ class HuggingFaceLLM(BaseLLM):
             api_key: str = "EMPTY",
             device: str = None,  # Kept for backward compatibility
             torch_dtype: torch.dtype = None,  # Kept for backward compatibility
-            max_input_tokens: int = 10_000  # Maximum input tokens allowed
+            max_input_tokens: int = 130_000  # Maximum input tokens allowed
         ):
         """Initialize HuggingFace LLM via vLLM, Ollama, etc API.
         
@@ -157,10 +157,8 @@ class HuggingFaceLLM(BaseLLM):
             })
         # Filter out system messages and process the rest
         user_assistant_messages = [m for m in messages if m["role"].lower() != "system"]
-        
+
         # Ensure messages alternate between user and assistant
-        current_role = "user"  # Start with user message
-        
         for message in user_assistant_messages:
             role = message["role"].lower()
 
