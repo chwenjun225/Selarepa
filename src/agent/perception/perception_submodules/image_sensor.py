@@ -1,3 +1,4 @@
+import numpy as np 
 import cv2 
 from typing import Any
 
@@ -8,10 +9,10 @@ class ImageSensor:
     Attributes:
         source: "camera" or file path
     """
-    def __init__(self, source: str = "camera"):  # or file path
+    def __init__(self, source: str = "camera") -> None:  # or file path
         self.source = source
 
-    def sense(self) -> Any:
+    def sense(self) -> np.ndarray:
         """
         Returns raw image data (BGR numpy array).
         """

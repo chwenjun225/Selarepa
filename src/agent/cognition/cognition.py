@@ -1,16 +1,18 @@
 from typing import Any, Dict, Optional, Tuple
 from ..base_agent import BaseAgent
-from .cognition_submodules.memory import Memory
-from .cognition_submodules.world_model import WorldModel
-from .cognition_submodules.emotion import Emotion
-from .cognition_submodules.goal import Goal
-from .cognition_submodules.reward import Reward
-from .cognition_submodules.reasoning import Reasoning
+
+from .cognition_submodules.memory       import Memory
+from .cognition_submodules.world_model  import WorldModel
+from .cognition_submodules.emotion      import Emotion
+from .cognition_submodules.goal         import Goal
+from .cognition_submodules.reward       import Reward
+from .cognition_submodules.reasoning    import Reasoning
 
 
 class Cognition(BaseAgent):
     """
-    Agent responsible for cognition: updating mental state components and reasoning actions.
+    Agent responsible for cognition, updating mental 
+    state components and reasoning actions.
     """
 
     def __init__(

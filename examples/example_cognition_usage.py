@@ -1,10 +1,13 @@
 import fire 
-from cognition import Cognition 
+from agent.cognition.cognition import Cognition
 
 
 def main():
     # Initialize the Cognition agent
-    agent = Cognition(name="Cognition")
+    agent = Cognition(
+        config_path="config/agent_config.yaml", 
+        name="Cognition"
+    )
 
     # Initial mental state 
     # TODO: Mỗi thành phần như memory, world_model, emotion, reward, goal cần phải là một class, 
