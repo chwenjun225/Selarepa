@@ -30,5 +30,4 @@ class ImageSensor:
             frame = cv2.imread(self.source)
             if frame is None:
                 raise FileNotFoundError(f"Image file not found: {self.source}")
-            
             return frame
