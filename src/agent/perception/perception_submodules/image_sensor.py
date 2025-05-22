@@ -26,8 +26,9 @@ class ImageSensor:
                 raise RuntimeError("Failed to capture image from camera")
             return frame
         else:
-            # load from file
-            frame = Image.open(self.source)
+            # Load from file
+            frame = cv2.imread(self.source)
             if frame is None:
                 raise FileNotFoundError(f"Image file not found: {self.source}")
+            
             return frame

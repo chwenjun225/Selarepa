@@ -2,8 +2,7 @@ from agent.perception.perception import Perception
 
 
 def main() -> None:
-    # Set the image source to a file path or 'camera' for live capture
-    image_source = "/home/chwenjun225/projects/KhaAnh/assets/dieu_binh_nu.jpg"
+    image_source = "/home/chwenjun225/projects/KhaAnh/assets/vietnamese-traditional-dances.jpg"
 
     # Use 'camera' or provide a filepath: e.g. 'test.jpg'
     perc = Perception(
@@ -22,3 +21,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+# python -m examples.example_perception_usage

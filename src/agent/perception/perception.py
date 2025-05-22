@@ -16,32 +16,35 @@ class Perception(BaseAgent):
             self,
             name: Optional[str] = "Perception",
             config_path: Optional[str] = None,
-            image_source: str = "camera"
+            image_source: str = None
         ):
         super().__init__(name=name, config_path=config_path)
 
+        self.image_source = image_source    
+
         # Initialize submodules
-        self.sensor       = ImageSensor(source=image_source)
-        self.preprocessor = ImagePreprocessor()
+        # self.sensor       = ImageSensor(source=image_source)
+        # self.preprocessor = ImagePreprocessor()
         self.extractor    = VisionExtractor()
         self.filter       = ObservationFilter()
 
     def process(self) -> Dict[str, Any]:
-        try:
+        # try:
             # Capture image from camera or file_path
-            raw_img = self.sensor.sense()
-        except Exception as e:
-            return {"description": "", "error": str(e)}
+        #     raw_img = self.sensor.sense()
+        # except Exception as e:
+        #     return {"description": "", "error": str(e)}
+
+        # try:
+        #     # Encode image to base64 string 
+        #     b64 = self.preprocessor.process(raw_img)
+        # except Exception as e:
+        #     return {"description": "", "error": str(e)}
 
         try:
-            # Encode image to base64 string 
-            b64 = self.preprocessor.process(raw_img)
-        except Exception as e:
-            return {"description": "", "error": str(e)}
-
-        try:
-            obs = self.extractor.extract(self, b64)
-        except Exception as e:
+            # Add system-prompt and user-prompt to memory and get description
+            obs = self.extractor.extract(image_source=self.image_source, agent=self)
+        except Exception as e: 
             return {"description": "", "error": str(e)}
 
         filtered = self.filter.apply(obs)
