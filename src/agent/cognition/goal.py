@@ -19,8 +19,7 @@ class Goal:
         current_observation: Any
     ) -> Any:
         """
-        Build a prompt to revise or propose goals, send it through the agent's LLM,
-        and store the updated result.
+        Build a prompt to revise or propose goals, send it through the agent's LLM, and store the updated result.
 
         Args:
             agent: The Cognition agent instance for LLM calls.
