@@ -1,5 +1,5 @@
 from typing import Any, Dict 
-from ...base_agent import BaseAgent 
+from ..base_agent import BaseAgent 
 
 class Reasoning:
     """

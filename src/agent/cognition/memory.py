@@ -1,5 +1,5 @@
 from typing import Any 
-from ...base_agent import BaseAgent 
+from ..base_agent import BaseAgent 
 
 
 class Memory:
