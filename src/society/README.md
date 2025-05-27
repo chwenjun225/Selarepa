@@ -1,1 +1,0 @@
-Bối cảnh xã hội bao quanh agent 

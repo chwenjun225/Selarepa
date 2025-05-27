@@ -1,7 +1,5 @@
 # TRAN VAN TUAN - BASH CLI
 
-
-
 # llama_cpp runserver --support tool call for deepseek-r1 successfully. Either "json_schema" or "grammar" can be specified, but not both'
 /home/chwenjun225/projects/DeepEngine/third_3rdparty/llama.cpp-b4641/build/bin/llama-server \
 	--alias tranvantuan_research\
@@ -24,8 +22,6 @@ cmake --build build --config Release
 # CPU
 cmake -B build 
 cmake --build build --config Release 
-
-
 
 # Absolute path of
 # 	base model: /home/chwenjun225/.llama/checkpoints/MiniCPM-o-2_6-gguf/Model-7.6B-Q4_K_M.gguf
@@ -58,8 +54,6 @@ python /home/chwenjun225/projects/DeepEngine/third_3rdparty/MiniCPM-o-main/web_d
 	--timeout 30 \
 	--no-webui \
 	--slot-save-path ./kv_cache
-
-
 
 # Docker pgvector connection
 postgresql+psycopg://langchain:langchain@localhost:2000/langchain
@@ -94,9 +88,7 @@ CREATE TABLE chat_messages (
 	role TEXT NOT NULL CHECK (role IN ('SYS', 'HUMAN', 'AI')),
 	content TEXT NOT NULL,
 	timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-
+)
 
 # lm-eval-harness for finetuned_DeepSeek-R1-Distill-Qwen-1.5B_finetune_CoT_ReAct
 lm_eval --model hf \
@@ -104,8 +96,6 @@ lm_eval --model hf \
 	--tasks lambada_openai,hellaswag,piqa,arc_easy,arc_challenge,winogrande,openbookqa \
 	--device cuda \
 	--batch_size auto 
-
-
 
 # VLLM runserver 
 vllm serve /home/chwenjun225/.llama/checkpoints/Qwen2.5-VL-3B-Instruct \
@@ -154,16 +144,12 @@ python ./third_3rdparty/vllm-0.7.1/benchmarks/benchmark_serving.py \
 	--trust-remote-code \
 	--use-beam-search 
 
-
-
 # chroma_db runserver 
 chroma run \
 	--path "/home/chwenjun225/projects/DeepEngine/chromadb_storage" \
 	--host "127.0.0.1" \
 	--port "2027" \
 	--log-path "/home/chwenjun225/projects/DeepEngine/chromadb_storage.log"
-
-
 
 # HF-Transformers convert .pth to .safetensors 
 python /home/chwenjun225/.llama/checkpoints/transformers-4.49.0-SmolVLM-2/src/transformers/models/llama/convert_llama_weights_to_hf.py \
@@ -177,22 +163,14 @@ python /home/chwenjun225_laptop/projects/DeepEngine/third_3rdparty/llama.cpp-b46
 	--outtype f16 \
 	--outfile /home/chwenjun225_laptop/.llama/checkpoints/Llama-3.2-11B-Vision-Instruct/gguf
 
-
-
 # Kill the loaded model VRAM 
 nvidia-smi | grep 'python' | awk '{ print $5 }' | xargs -n1 kill -9
-
-
 
 # CUDA static realtime
 watch -n 0.3 -c gpustat -cp --color
 
-
-
 # CPU & RAM static realtime
 htop
-
-
 
 # Kill port
 sudo fuser -k 2026/tcp
