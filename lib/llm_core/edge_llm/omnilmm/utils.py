@@ -101,9 +101,8 @@ def disable_torch_init():
 
 
 def violates_moderation(text):
-    """
-    Check whether the text violates OpenAI moderation API.
-    """
+    """Check whether the text violates OpenAI moderation API."""
+
     url = "https://api.openai.com/v1/moderations"
     headers = {
         "Content-Type": "application/json",

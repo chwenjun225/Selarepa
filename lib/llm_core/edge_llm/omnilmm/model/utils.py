@@ -1,17 +1,17 @@
-from torchvision import transforms 
-from timm.data.transforms import RandomResizedCropAndInterpolation
-from timm.data.constants import IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
-from PIL import Image 
-from io import BytesIO 
-from transformers import AutoConfig, StoppingCriteria
-import torch.distributed as dist 
 import numpy as np
 import pickle
 import base64
 import cv2
 import os
 import torch
-from typing import Any 
+import torch.distributed as dist 
+
+from torchvision import transforms 
+from timm.data.transforms import RandomResizedCropAndInterpolation
+from timm.data.constants import IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
+from PIL import Image 
+from io import BytesIO 
+from transformers import AutoConfig, StoppingCriteria
 
 try:
     from timm.data.constants import OPENAI_CLIP_MEAN, OPENAI_CLIP_STD 
@@ -20,19 +20,21 @@ except ImportError:
     OPENAI_CLIP_STD = (0.26862954, 0.26130258, 0.27577711)
 
 
-def auto_upgrade(config):
+def auto_upgrade(config: dict):
     cfg = AutoConfig.from_pretrained(config)
-    if 'llava' in config and cfg.model_type != 'llava':
+    if 'llava' in config and cfg["model_type"] != 'llava':
         print("You are using newer LLaVA code base, while the checkpoint of v0 is from older code base.")
         print("You must upgrade the checkpoint to the new code base (this can be done automatically).")
         confirm = input(
             "Please confirm that you want to upgrade the checkpoint. [Y/N]")
         if confirm.lower() in ["y", "yes"]:
             print("Upgrading checkpoint...")
-            assert len(cfg.architectures) == 1
+            assert len(cfg["save_pretrained"]) == 1
             setattr(cfg.__class__, "model_type", "llava")
-            cfg.architectures[0] = 'LlavaLlamaForCausalLM'
-            cfg.save_pretrained(config)
+
+            cfg["architectures"][0] = 'LlavaLlamaForCausalLM'
+            cfg["save_pretrained"](config)
+
             print("Checkpoint upgraded.")
         else:
             print("Checkpoint upgrade aborted.")
@@ -63,11 +65,11 @@ def identity_func(img):
     return img
 
 
-def autocontrast_func(img, cutoff=0):
+def autocontrast_func(img:np.ndarray, cutoff:int=0) -> np.ndarray:
     """Same output as PIL.ImageOps.autocontrast."""
     n_bins = 256
 
-    def tune_channel(ch):
+    def tune_channel(ch: np.ndarray) -> np.ndarray:
         n = ch.size
         cut = cutoff * n // 100
         if cut == 0:
@@ -93,20 +95,23 @@ def autocontrast_func(img, cutoff=0):
     return out
 
 
-def equalize_func(img):
+def equalize_func(img: np.ndarray) -> np.ndarray:
     """Same output as PIL.ImageOps.equalize. PIL's implementation is different from cv2.equalize."""
     n_bins = 256
 
-    def tune_channel(ch):
+    def tune_channel(ch: np.ndarray) -> np.ndarray:
         hist = cv2.calcHist([ch], [0], None, [n_bins], [0, n_bins])
         non_zero_hist = hist[hist != 0].reshape(-1)
         step = np.sum(non_zero_hist[:-1]) // (n_bins - 1)
+
         if step == 0:
             return ch
+        
         n = np.empty_like(hist)
         n[0] = step // 2
         n[1:] = hist[:-1]
         table = (np.cumsum(n) // step).clip(0, 255).astype(np.uint8)
+
         return table[ch]
 
     channels = [tune_channel(ch) for ch in cv2.split(img)]
@@ -114,19 +119,16 @@ def equalize_func(img):
     return out
 
 
-
-def rotate_func(img, degree, fill=(0, 0, 0)):
+def rotate_func(img:np.ndarray, angle_degree: int, fill: tuple[int, int, int]=(0, 0, 0)) -> np.ndarray:
     """Like PIL, rotate by degree, not radians"""
-    
     H, W = img.shape[0], img.shape[1]
-    center = W / 2, H / 2
-    M = cv2.getRotationMatrix2D(center, degree, 1)
+    center = W/2, H/2
+    M = cv2.getRotationMatrix2D(center, angle_degree, 1)
     out = cv2.warpAffine(img, M, (W, H), borderValue=fill)
     return out
 
 
-
-def solarize_func(img, thresh=128):
+def solarize_func(img:np.ndarray, thresh:int=128) -> np.ndarray:
     """Same output as PIL.ImageOps.posterize"""
     table = np.array([el if el < thresh else 255 - el for el in range(256)])
     table = table.clip(0, 255).astype(np.uint8)
@@ -134,10 +136,10 @@ def solarize_func(img, thresh=128):
     return out
 
 
-def color_func(img, factor):
+def color_func(img: np.ndarray, factor: float) -> np.ndarray:
     """Same output as PIL.ImageEnhance.Color"""
 
-    # implementation according to PIL definition, quite slow
+    # Implementation according to PIL definition, quite slow
     #  degenerate = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)[:, :, np.newaxis]
     #  out = blend(degenerate, img, factor)
     #  M = (
@@ -156,9 +158,7 @@ def color_func(img, factor):
     return out
 
 
-
-
-def contrast_func(img, factor):
+def contrast_func(img: np.ndarray, factor: float) -> np.ndarray:
     """Same output as PIL.ImageEnhance.Contrast"""
     mean = np.sum(np.mean(img, axis=(0, 1)) * np.array([0.114, 0.587, 0.299]))
     table = np.array([(
@@ -169,18 +169,15 @@ def contrast_func(img, factor):
     return out
 
 
-def brightness_func(img, factor):
+def brightness_func(img: np.ndarray, factor: float) -> np.ndarray:
     """Same output as PIL.ImageEnhance.Contrast"""
     table = (np.arange(256, dtype=np.float32) * factor).clip(0, 255).astype(np.uint8)
     out = table[img]
     return out
 
 
-def sharpness_func(img, factor):
-    """
-    The differences the this result and PIL are all on the 4 boundaries, the center
-    areas are Same
-    """
+def sharpness_func(img: np.ndarray, factor: float) -> np.ndarray:
+    """The differences the this result and PIL are all on the 4 boundaries, the center areas are Same"""
     kernel = np.ones((3, 3), dtype=np.float32)
     kernel[1][1] = 5
     kernel /= 13
@@ -198,49 +195,57 @@ def sharpness_func(img, factor):
     return out
 
 
-def shear_x_func(img, factor, fill=(0, 0, 0)):
-    H, W = img.shape[0], img.shape[1]
-    M = np.float32([[1, factor, 0], [0, 1, 0]])
-    out = cv2.warpAffine(img, M, (W, H), borderValue=fill, flags=cv2.INTER_LINEAR).astype(np.uint8)
-    return out
+def shear_x_func(
+        img: np.ndarray, 
+        factor: float, 
+        fill:tuple[int, int, int]=(0, 0, 0)
+    ) -> np.ndarray:
+    """Shear the image along the X-axis."""
+    h, w = img.shape[:2]
+    # Construct affine transformation matrix for X-axis shear
+    M = np.array([
+        [1, factor, 0],
+        [0,     1,   0]], dtype=np.float32)
+    # Apply affine warp with specified border fill color
+    sheared = cv2.warpAffine(
+        img, M, (w, h), flags=cv2.INTER_LINEAR,
+        borderMode=cv2.BORDER_CONSTANT,
+        borderValue=fill
+    )
+    return sheared.astype(np.uint8)
 
 
-def translate_x_func(img, offset, fill=(0, 0, 0)):
-    """
-        Same output as PIL.Image.transform
-    """
+def translate_x_func(img: np.ndarray, offset: int, fill:tuple[int, int,int]=(0, 0, 0)) -> np.ndarray:
+    """Same output as PIL.Image.transform"""
+
     H, W = img.shape[0], img.shape[1]
     M = np.float32([[1, 0, -offset], [0, 1, 0]])
     out = cv2.warpAffine(img, M, (W, H), borderValue=fill, flags=cv2.INTER_LINEAR).astype(np.uint8)
     return out
 
 
-def translate_y_func(img, offset, fill=(0, 0, 0)):
-    """
-        Same output as PIL.Image.transform
-    """
+def translate_y_func(img: np.ndarray, offset: int, fill:tuple[int, int,int]=(0, 0, 0)) -> np.ndarray:
+    """Same output as PIL.Image.transform"""
     H, W = img.shape[0], img.shape[1]
     M = np.float32([[1, 0, 0], [0, 1, -offset]])
     out = cv2.warpAffine(img, M, (W, H), borderValue=fill, flags=cv2.INTER_LINEAR).astype(np.uint8)
     return out
 
 
-def posterize_func(img, bits):
-    """
-        Same output as PIL.ImageOps.posterize
-    """
+def posterize_func(img:np.ndarray, bits:int) -> np.ndarray:
+    """Same output as PIL.ImageOps.posterize"""
     out = np.bitwise_and(img, np.uint8(255 << (8 - bits)))
     return out
 
 
-def shear_y_func(img, factor, fill=(0, 0, 0)):
+def shear_y_func(img: np.ndarray, factor: int, fill:tuple[int, int,int]=(0, 0, 0)) -> np.ndarray:
     H, W = img.shape[0], img.shape[1]
     M = np.float32([[1, 0, 0], [factor, 1, 0]])
     out = cv2.warpAffine(img, M, (W, H), borderValue=fill, flags=cv2.INTER_LINEAR).astype(np.uint8)
     return out
 
 
-def cutout_func(img, pad_size, replace=(0, 0, 0)):
+def cutout_func(img: np.ndarray, pad_size: int, replace:tuple[int, int,int]=(0, 0, 0)):
     replace = np.array(replace, dtype=np.uint8)
     H, W = img.shape[0], img.shape[1]
     rh, rw = np.random.random(2)
@@ -347,19 +352,14 @@ arg_dict = {
     'Brightness': enhance_level_to_args(MAX_LEVEL),
     'Sharpness': enhance_level_to_args(MAX_LEVEL),
     'ShearX': shear_level_to_args(MAX_LEVEL, replace_value),
-    'TranslateX': translate_level_to_args(
-        translate_const, MAX_LEVEL, replace_value
-    ),
-    'TranslateY': translate_level_to_args(
-        translate_const, MAX_LEVEL, replace_value
-    ),
+    'TranslateX': translate_level_to_args(translate_const, MAX_LEVEL, replace_value),
+    'TranslateY': translate_level_to_args(translate_const, MAX_LEVEL, replace_value),
     'Posterize': posterize_level_to_args(MAX_LEVEL),
     'ShearY': shear_level_to_args(MAX_LEVEL, replace_value),
 }
 
 
 class RandomAugment(object):
-
     def __init__(self, N=2, M=10, isPIL=False, augs=[]):
         self.N = N
         self.M = M
@@ -428,8 +428,9 @@ def build_transform(is_train, randaug=True, input_size=224, interpolation='bicub
     return t
 
 
-def img2b64(img_path):
-    img = Image.open(img_path)  # path to file
+def img2b64(img_path: str) -> str:
+    """Convert PIL Image to base64 string."""
+    img: Image.Image = Image.open(img_path)  # path to file
     img_buffer = BytesIO()
     img.save(img_buffer, format=img.format)
     byte_data = img_buffer.getvalue()
@@ -438,11 +439,11 @@ def img2b64(img_path):
     return base64_str
 
 
-def str2b64(str):
-    return base64.b64encode(str.encode('utf-8')).decode('utf-8')
+def str2b64(the_str: str) -> str:
+    return base64.b64encode(the_str.encode('utf-8')).decode('utf-8')
 
 
-def b642str(b64):
+def b642str(b64: str) -> str:
     return base64.b64decode(b64).decode('utf-8')
 
 
@@ -455,12 +456,14 @@ def is_dist_avail_and_initialized():
 
 
 def get_world_size():
+    """Check GPUs numbers."""
     if not is_dist_avail_and_initialized():
         return 1
     return dist.get_world_size()
 
 
 def get_rank():
+    """Kiểm tra thứ tự của các GPUs."""
     if not is_dist_avail_and_initialized():
         return 0
     return dist.get_rank()
