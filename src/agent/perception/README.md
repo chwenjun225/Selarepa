@@ -1,4 +1,53 @@
-đã xong module cognition, giờ sẽ sang perception 
+mục đích của nghiên cứu MiniCPM là
+(1) tái tạo triển khai module multi-modal nhẹ, nhanh, mạnh chạy trên edge device 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- đã xong module cognition, giờ sẽ sang perception 
 
 ở module perception này ta sẽ thiết kế một module nhằm đưa ra các observation đầy đủ về thế giới quan mà agent nhìn hoặc cảm nhận được.
 
@@ -9,4 +58,4 @@ vậy các module này là gì
 
 (2) lấy observation đưa vào cognition module 
 
-có vẻ tạm thời ta đã hoàn thành sơ bộ module cognition, giờ ta sẽ sang module perception. 
+có vẻ tạm thời ta đã hoàn thành sơ bộ module cognition, giờ ta sẽ sang module perception.  -->
