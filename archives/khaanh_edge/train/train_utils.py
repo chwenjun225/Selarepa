@@ -10,7 +10,7 @@ import transformers
 import numpy as np
 
 from typing import Dict, Optional, Sequence
-from ...omnilmm import conversation as conversation_lib
+from ...khaanh_edge import conversation as conversation_lib
 
 
 IGNORE_INDEX = -100

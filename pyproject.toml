@@ -1,9 +1,10 @@
 [project]
-name = "khaanh"
+name = "AllMind"
 version = "0.1.0"
-description = "Method and device for foundation agents"
+description = "System and Method for Automated Label Correction Using LLM-based Agent in Visual Violation Detection"
 authors = [
-    { name = "Tran Van Tuan", email = "trantuan22052k@gmail.com" }
+    { name = "Tran Van Tuan", email = "trantuan22052k@gmail.com" },
+    { name = "Zhang Ai Ping", email = "zappku@163.com" }
 ]
 readme = "README.md"
 requires-python = ">=3.9"
@@ -15,8 +16,9 @@ requires-python = ">=3.9"
 [tool.setuptools.packages.find]
 # Chỉ tìm package trong lib/
 where = ["lib"]
+
 # (Tùy chọn) chỉ include các package llm_core nếu bạn không muốn publish thêm module khác
-include = ["llm_core*", "omnilmm*"]
+include = ["llm_core*"]
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]

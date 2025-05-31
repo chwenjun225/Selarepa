@@ -11,8 +11,8 @@ from transformers import AutoConfig, AutoModelForCausalLM
 from transformers import MistralForCausalLM, MistralModel, MistralConfig
 from transformers.modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast
 
-from ...omnilmm.model.utils import build_transform
-from ...omnilmm.model.resampler import Resampler
+from ...khaanh_edge.model.utils import build_transform
+from ...khaanh_edge.model.resampler import Resampler
 
 
 DEFAULT_IMAGE_PATCH_TOKEN = "<im_patch>"
