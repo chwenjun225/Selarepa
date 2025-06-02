@@ -1,5 +1,6 @@
 # Added by chwenjun225
 *.mp4
+evals/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -46,7 +47,7 @@ dist/
 Thumbs.db
 
 # Model weights or data dumps
-*.pt
+# *.pt
 *.pth
 *.ckpt
 *.bin
