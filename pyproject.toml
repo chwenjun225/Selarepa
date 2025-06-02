@@ -1,7 +1,7 @@
 [project]
-name = "AllMind"
+name = "Selarepa"
 version = "0.1.0"
-description = "System and Method for Automated Label Correction Using LLM-based Agent in Visual Violation Detection"
+description = "System and Method for SElf-LAbel REPAir Using LLM-based Agent in Visual Violation Detection"
 authors = [
     { name = "Tran Van Tuan", email = "trantuan22052k@gmail.com" },
     { name = "Zhang Ai Ping", email = "zappku@163.com" }
