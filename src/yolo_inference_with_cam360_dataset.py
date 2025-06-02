@@ -84,7 +84,7 @@ def run_commands() -> None:
     """
     process_videos(
         input_folder="./datasets/Cam360",
-        output_folder="./evals",
+        output_folder="./evals/Train_Fulian_25_04_20252",
         model_path="./datasets/Cam360/Weight/Train_Fulian_25_04_20252/weights/best.pt"
     )
 

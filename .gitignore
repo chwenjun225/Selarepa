@@ -1,6 +1,6 @@
 # Added by chwenjun225
 *.mp4
-evals/
+evals/Train_Fulian_25_04_20252/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
