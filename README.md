@@ -10,5 +10,5 @@ Phát minh này mô tả một hệ thống sử dụng AI agent dựa trên mô
 * Background: camera systems often have false positives in behavior classification.
 * Technical solution:
 
-  * Multi-stage pipeline: object detection → patch extraction → label analysis by LLM-agent → feedback loop for retraining.
+* Multi-stage pipeline: object detection → patch extraction → label analysis by LLM-agent → feedback loop for retraining.
 * Advantages: giảm nhân lực, tăng tốc độ làm sạch dữ liệu, cải thiện độ chính xác.

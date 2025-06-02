@@ -11,11 +11,11 @@ requires-python = ">=3.9"
 
 [tool.setuptools.package-dir]
 # Tất cả modules/package mặc định đều nằm dưới lib/
-"" = "lib"
+"" = "src/lib"
 
 [tool.setuptools.packages.find]
 # Chỉ tìm package trong lib/
-where = ["lib"]
+where = ["src/lib"]
 
 # (Tùy chọn) chỉ include các package llm_core nếu bạn không muốn publish thêm module khác
 include = ["llm_core*"]
