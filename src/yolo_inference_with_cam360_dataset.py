@@ -1,9 +1,7 @@
-import os
 import cv2
 import fire
-import subprocess
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 from datetime import datetime
 from ultralytics import YOLO
 
@@ -28,53 +26,62 @@ def process_videos(input_folder: str, output_folder: str, model_path: str) -> No
         input_folder (str): Path to the folder containing input videos.
         output_folder (str): Path to the folder where output images and logs will be saved.
         model_path (str): Path to the YOLO model (e.g., yolov8s.pt).
+    
+    Save Directory:
+        original_frames: Contain orginal image
+        txt_labels: Contain label image
+        yolo_drawn: Contain yolo drawn image 
     """
     input_path = Path(input_folder)
     output_path = Path(output_folder)
-    output_path.mkdir(parents=True, exist_ok=True)
-    log_file_path = output_path / "log.txt"
+    yolo_path = output_path / "yolo_drawn"
+    original_path = output_path / "original_frames"
+    txt_path = output_path / "txt_labels"
+
+    yolo_path.mkdir(parents=True, exist_ok=True)
+    original_path.mkdir(parents=True, exist_ok=True)
+    txt_path.mkdir(parents=True, exist_ok=True)
 
     yolo = YOLO(model_path)
     video_files = collect_video_paths(str(input_path))
 
-    with open(log_file_path, "w") as log_file:
-        for video_file in video_files:
-            cap = cv2.VideoCapture(str(video_file))
-            video_name = video_file.stem
-            frame_idx = 0
+    global_frame_index = 0
 
-            while True:
-                ret, frame = cap.read()
-                if not ret:
-                    break
+    for video_file in video_files:
+        cap = cv2.VideoCapture(str(video_file))
 
-                results = yolo(frame)
-                if not results:
-                    continue
-                result = results[0]
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
 
-                # Draw results using YOLO's inbuilt visualizer
-                annotated_frame = result.plot()
-                frame_log: List[str] = []
+            results = yolo(frame)
+            if not results:
+                continue
+            result = results[0]
 
+            # Save original frame
+            orig_filename = original_path / f"{global_frame_index:06d}.jpg"
+            cv2.imwrite(str(orig_filename), frame)
+
+            # Save annotated frame
+            annotated_frame = result.plot()
+            yolo_filename = yolo_path / f"{global_frame_index:06d}.jpg"
+            cv2.imwrite(str(yolo_filename), annotated_frame)
+
+            # Save detection data to txt
+            txt_filename = txt_path / f"{global_frame_index:06d}.txt"
+            with open(txt_filename, "w") as f:
                 for box in result.boxes:
                     if box.conf[0] > 0.4:
                         cls = int(box.cls[0])
-                        label = result.names[cls] if cls in result.names else str(cls)
-                        frame_log.append(f"Detected {label} with confidence {box.conf[0]:.2f}")
+                        conf = float(box.conf[0])
+                        x1, y1, x2, y2 = map(float, box.xyxy[0])
+                        f.write(f"{cls} {conf:.4f} {x1:.2f} {y1:.2f} {x2:.2f} {y2:.2f}\n")
 
-                # Save frame image
-                frame_filename = output_path / f"{video_name}_frame{frame_idx}.jpg"
-                cv2.imwrite(str(frame_filename), annotated_frame)
+            global_frame_index += 1
 
-                # Write log
-                log_file.write(f"[{datetime.now()}] {frame_filename.name}\n")
-                for log_line in frame_log:
-                    log_file.write(f"  - {log_line}\n")
-
-                frame_idx += 1
-
-            cap.release()
+        cap.release()
 
     print(f"Processing completed. Results saved in {output_path}")
 

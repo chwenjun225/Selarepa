@@ -1,1 +1,0 @@
-Thư mục này chứa các dữ liệu được inference 
