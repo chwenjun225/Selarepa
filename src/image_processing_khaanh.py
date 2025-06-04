@@ -12,7 +12,6 @@ import PIL
 import PIL.Image
 import PIL.ImageSequence
 import torch
-from PIL import Image
 from transformers import AutoImageProcessor
 from transformers.image_processing_utils import BaseImageProcessor
 from transformers.image_processing_utils import BatchFeature
@@ -427,7 +426,6 @@ class KhaanhImageProcessor(BaseImageProcessor):
 
         return tuple(best_grid)
 
-
     def get_slice_image_placeholder(
             self,
             image_size: Tuple[int, int],
@@ -518,8 +516,9 @@ class KhaanhImageProcessor(BaseImageProcessor):
 
     def reshape_by_patch(self, image: np.ndarray) -> np.ndarray:
         """
-        Chia ảnh đầu vào thành các patch có kích thước (patch_size x patch_size), 
-        rồi sắp xếp lại thành tensor 3 chiều phục vụ cho mô hình xử lý. 
+        Biến ảnh thành dạng [C, patch_size, num_patches], nghĩa là chia 
+        theo từng dòng patch — thường dùng khi MiniCPM-o nạp từng patch như một 
+        chuỗi token liên tục.
 
         Args:
             image (np.ndarray): Ảnh đầu vào dạng Numpy array với shape [3, H, W], 
@@ -533,11 +532,132 @@ class KhaanhImageProcessor(BaseImageProcessor):
         image_tensor = torch.from_numpy(image)
         patch_size = self.patch_size 
 
-        # https://huggingface.co/openbmb/MiniCPM-o-2_6/blob/main/image_processing_minicpmv.py#L335
+        # Dùng unfold để cắt ảnh thành các patch (flatten theo từng vòng)
+        # Kết quả shape: [C, patch_size * patch_size, num_patches]
+        patches = torch.nn.functional.unfold(
+            image_tensor, 
+            (patch_size, patch_size), 
+            stride=(patch_size, patch_size)
+        )
+
+        # Chuyển shape về [C, patch_size, patch_size, num_patches]
+        patches = patches.reshape(image_tensor.size(0), patch_size, patch_size, -1) 
+
+        # Đưa patch thành [C, patch_size, num_patches] bằng cách gộp lại 2 chiều cuối
+        patches = patches.permute(0, 1, 3, 2).reshape(image_tensor.size(0), patch_size, -1)
+
+        # Chuyển lại về Numpy Array để tương thích với các bước xử lý sau 
+        return patches.numpy()
+
+    def preprocess(
+            self, 
+            images: Union[PIL.Image.Image, List[PIL.Image.Image], List[List[PIL.Image.Image]]], 
+            do_pad: Optional[bool] = True, 
+            max_slice_nums: Optional[int] = None,
+            return_tensors: Optional[Union[str, TensorType]] = None,
+            **kwargs, 
+        ) -> KhaanhBatchFeature:
+        """
+        Tiền xử lý ảnh đầu vào để chuẩn bị cho mô hình:
+            - chuyển ảnh về định dạng chuẩn
+            - chia lát nếu cần 
+            - chuẩn hóa và chia patch 
+            - trả về batch dạng đặc biệt chứa ảnh đã xử lý 
+
+        Args:
+            images (Union[PIL.Image.Image, List[PIL.Image.Image], List[List[PIL.Image.Image]]]):
+                Ảnh đầu vào (1 ảnh, 1 danh sách ảnh, hoặc danh sách các danh sách ảnh).
+            do_pad (bool, optional): Không sử dụng trong hàm này, để tương thích với chuẩn `ImageProcessor`.
+            max_slice_nums (int, optional): Số lát tối đa mỗi ảnh có thể được chia.
+            return_tensors (str or TensorType, optional): Loại tensor mong muốn cho output ('pt', 'np', etc).
+
+        Returns:
+            KhaanhBatchFeature: Batch đặc biệt chứa các tensor ảnh, kích thước ảnh gốc, và kích thước patch mục tiêu.
+        """
+        # Chuẩn hóa input thành danh sách 2 chiều: List[List[PIL.Image.Image]]
+        if isinstance(images, PIL.Image.Image):
+            images_list = [[images]]
+        elif isinstance(images[0], PIL.Image.Image):
+            images_list = [images]
+        else:
+            images_list = images
+
+        new_images_list = []
+        image_sizes_list = []
+        tgt_sizes_list = []
+
+        for _images in images_list:
+            if _images is None or len(_images) == 0:
+                new_images_list.append([])
+                image_sizes_list.append([])
+                tgt_sizes_list.append([])
+                continue
+        
+            if not valid_images(_images):
+                raise ValueError(
+                    "Invalid image type. Must be of type PIL.Image.Image, numpy.ndarray, "
+                    "torch.Tensor, tf.Tensor or jax.ndarray."
+                )
+
+            # Đảm bảo ảnh có định dạng PIL và RGB
+            _images = [self.to_pil_image(image).convert("RGB") for image in _images]
+
+            # Xác định thứ tự kênh (CHW hay HWC) từ ảnh đầu tiên
+            input_data_format = infer_channel_dimension_format(np.array(_images[0]))
+
+            new_images = []
+            image_sizes = [image.size for image in _images]
+            tgt_sizes = []
+
+            for image in _images:
+                # Lấy danh sách các lát ảnh (gồm ảnh gốc đã resize + patches)
+                image_patches = self.get_sliced_images(image, max_slice_nums)
+
+                # Chuyển sang NumPy, scale pixel về [0,1]
+                image_patches = [to_numpy_array(image).astype(np.float32) / 255 for image in image_patches]
+                
+                # Chuẩn hóa giá trị pixel theo mean/std
+                image_patches = [
+                    self.normalize(
+                        image=image, mean=self.mean, 
+                        std=self.std, input_data_format=input_data_format
+                    )
+                    for image in image_patches
+                ]
+                # Đảm bảo thứ tự kênh là Channel-first: [C, H, W]
+                image_patches = [
+                    to_channel_dimension_format(
+                        image, ChannelDimension.FIRST, 
+                        input_channel_dim=input_data_format
+                    )
+                    for image in image_patches
+                ]
+
+                # Chia từng lát ảnh thành patch, lưu lại 
+                for slice_image in image_patches:
+                    new_images.append(self.reshape_by_patch(slice_image))
+                    tgt_sizes.append(
+                        np.array(
+                            (slice_image.shape[1] // self.patch_size, slice_image.shape[2] // self.patch_size)
+                        )
+                    )
+
+            if tgt_sizes:
+                tgt_sizes = np.vstack(tgt_sizes) # Stack các kích thước patch thành 2D array 
+
+            new_images_list.append(new_images)
+            image_sizes_list.append(image_sizes)
+            tgt_sizes_list.append(tgt_sizes)
 
 
+        # Trả về batch dạng KhaanhBatchFeature chứa pixel_values, image_sizes, tgt_sizes
+        return KhaanhBatchFeature(
+            data={
+                "pixel_values": new_images_list,
+                "image_sizes": image_sizes_list,
+                "tgt_sizes": tgt_sizes_list
+            },
+            tensor_type=return_tensors,
+        )
 
-
-
-
-
+AutoImageProcessor.register("KhaanhImageProcessor", KhaanhImageProcessor)
