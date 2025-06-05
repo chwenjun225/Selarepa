@@ -1,3 +1,4 @@
+# Code reference from https://huggingface.co/openbmb/MiniCPM-o-2_6/blob/main/image_processing_minicpmv.py
 import math
 from typing import Any
 from typing import Dict
@@ -6,7 +7,6 @@ from typing import Tuple
 from typing import Optional
 from typing import Union
 
-import PIL.ImageGrab
 import numpy as np
 import PIL
 import PIL.Image
@@ -39,19 +39,50 @@ def recursive_converter(converter, value):
 
 class KhaanhBatchFeature(BatchFeature):
     r"""
-    Extend from BatchFeature for supporting various image size
+    Class mở rộng từ `BatchFeature`, nhằm hỗ trợ xử lý batch với các 
+    hình ảnh có kích thước khác nhau.
+    
+    Attributes:
+        data (Optional[Dict[str, Any]]): Dữ liệu batch đầu vào.
+        tensor_type (Union[None, str, TensorType]): Loại tensor muốn 
+            chuyển đổi dữ liệu sang (ví dụ: "pt", "tf", v.v.).
     """
 
     def __init__(self, data: Optional[Dict[str, Any]] = None, tensor_type: Union[None, str, TensorType] = None):
+        """
+        Khởi tạo `KhaanhBatchFeature`, đồng thời chuyển đổi dữ liệu 
+        sang tensor nếu chỉ định.
+
+        Args:
+            data (Optional[Dict[str, Any]]): Dữ liệu batch đầu vào.
+            tensor_type (Union[None, str, TensorType], optional): Loại 
+                tensor để chuyển dữ liệu sang.
+        """
         super().__init__(data)
         self.convert_to_tensors(tensor_type=tensor_type)
 
-    def convert_to_tensors(self, tensor_type: Optional[Union[str, TensorType]] = None):
+    def convert_to_tensors(
+            self, 
+            tensor_type: Optional[Union[str, TensorType]] = None
+        )-> "KhaanhBatchFeature":
+        """
+        Chuyển đổi dữ liệu trong batch sang tensor tương ứng với `tensor_type`.
+
+        Args:
+            tensor_type (Optional[Union[str, TensorType]]): Kiểu tensor 
+                để chuyển đổi ("pt", "tf", "np", v.v.).
+
+        Returns:
+            KhaanhBatchFeature: Đối tượng hiện tại đã chuyển đổi dữ liệu thành tensor.
+
+        Raises:
+            ValueError: Nếu không thể tạo tensor do các chuỗi có độ dài khác nhau.
+        """
         if tensor_type is None:
             return self
-
+        # Lấy hai hàm kiểm tra và chuyển đổi tensor tương ứng với loại được chỉ định 
         is_tensor, as_tensor = self._get_is_as_tensor_fns(tensor_type)
-
+        # Hàm chuyển đổi đệ quy từng phần tử 
         def converter(value):
             try:
                 if not is_tensor(value):
@@ -59,25 +90,47 @@ class KhaanhBatchFeature(BatchFeature):
                     return tensor
             except:  # noqa E722
                 if key == "overflowing_values":
-                    raise ValueError("Unable to create tensor returning overflowing values of different lengths. ")
+                    raise ValueError(
+                        "Unable to create tensor returning overflowing values of different lengths. ")
                 raise ValueError(
                     "Unable to create tensor, you should probably activate padding "
                     "with 'padding=True' to have batched tensors with the same length."
                 )
-
+        # Lặp qua từng key trong batch và áp dụng chuyển đổi đệ quy 
         for key, value in self.items():
             self[key] = recursive_converter(converter, value)
         return self
 
     def to(self, *args, **kwargs) -> "KhaanhBatchFeature":
+        """
+        Chuyển tất cả các tensor trong `KhaanhBatchFeature` sang thiết bị cuda/cpu 
+        hoặc chuyển thành kiểu dữ liệu khác (dtype).
+
+        Phương thức này sử dụng tương tự như `.to()` trong Pytorch để chuyển tensor 
+        sang GPU/CPU hoặc chuyển kiểu dữ liệu (ví dụ: float32 -> float16). Nó áp dụng 
+        một cách đệ quy trên toàn bộ các phần từ trong `KhaanhBatchFeature`.
+
+        Args:
+            *args: Tham số chuyển tiếp tới `torch.Tensor.to()` như device (ví dụ: 
+                "cuda", "cpu") hoặc dtype (ví dụ: `torch.float16`
+            **kwargs: Các tham số bổ xung như `device=...`, `dtype=...`
+        
+        Returns:
+            KhaanhBatchFeature: Đối tượng hiện tại với tất cả tensor đã được chuyển đổi 
+                thiết bị hoặc kiểu dữ liệu.
+        """
+        # Đảm bảo Pytorch đã được cài đặt 
         requires_backends(self, ["torch"])
         import torch 
 
-        def cast_tensor(v):
-            # check if v is a floating point
+        # Hàm chuyển tensor 
+        def cast_tensor(v: Any) -> Any:
+            # check if v is a floating point -- Nếu tensor là số thực (float), cho phép 
+            #   thay đổi cả dtype và device 
             if torch.is_floating_point(v):
                 # cast and send to device
                 return v.to(*args, **kwargs)
+            # Nếu không phải float tensor, thì chuyển đổi thiết bị tính toán CUDA/CPU 
             elif device is not None:
                 return v.to(device=device)
             else:
@@ -85,19 +138,23 @@ class KhaanhBatchFeature(BatchFeature):
         
         new_data = {}
         device = kwargs.get("device")
+
         # Check if the args are a device or a dtype 
         if device is None and len(args) > 0:
             # device should be always the first argument
             arg = args[0]
             if is_torch_dtype(arg):
-                # The first argument is a dtype
+                # If the first argument is a dtype --> Pass 
                 pass
             elif isinstance(arg, str) or is_torch_device(arg) or isinstance(arg, int):
                 device = arg
             else:
                 # it's something else
-                raise ValueError(f"Attempting to cast a BatchFeature to type {str(arg)}. This is not supported.")
-        # We cast only floating point tensors to avoid issues with tokenizers casting `LongTensor` to `FloatTensor`
+                raise ValueError(
+                    f"Attempting to cast a BatchFeature to type" 
+                    " {str(arg)}. This is not supported.")
+        # We cast only floating point tensors to avoid issues with tokenizers 
+        #   casting `LongTensor` to `FloatTensor`
         for k, v in self.items():
             new_data[k] = recursive_converter(cast_tensor, v)
         self.data = new_data
@@ -105,33 +162,77 @@ class KhaanhBatchFeature(BatchFeature):
 
 
 class KhaanhImageProcessor(BaseImageProcessor):
-    model_input_names = ["pixel_values"]
+    model_input_names = ["pixel_values"] 
 
-    def __init__(self, max_slice_nums=9, scale_resolution=448, patch_size=14, **kwargs):
+    def __init__(
+            self, 
+            max_slice_nums:int=9, 
+            scale_resolution:int=448, 
+            patch_size:int=14, 
+            **kwargs: Dict[str, Any]
+        ) -> None:
+        """
+        Class mở rộng từ `BaseImageProcessor`, để tiền xử lý ảnh 
+            tùy chỉnh cho multi-modal-LLM.
+
+        Args:
+            max_slice_nums (int): Số lượng lát ảnh (slice) tối đa để xử lý mỗi ảnh.
+            scale_resolution (int): Độ phân giải chuẩn hoá của ảnh đầu vào.
+            patch_size (int): Kích thước patch dùng để trích xuất đặc trưng từ ảnh.
+            **kwargs (Any): Các tham số mở rộng cho cấu hình bổ sung như token đặc biệt,
+                            chuẩn hoá, chế độ slice,...
+        """
+
         super().__init__(**kwargs)
-        self.max_slice_nums = max_slice_nums
-        self.scale_resolution = scale_resolution
-        self.patch_size = patch_size
         
+        # Cấu hình chính cho xử lý ảnh 
+        self.max_slice_nums = max_slice_nums # Số lát cắt ảnh tối đa 
+        self.scale_resolution = scale_resolution # Độ phân giải resize 
+        self.patch_size = patch_size # Kích thước patch trích xuất đặc trưng 
+        
+        # Các cấu hình đặc biệt lấy từ kwargs 
         self.use_image_id = kwargs.pop("use_image_id", False)
-        self.image_feature_size = kwargs.pop("image_feature_size", 64)
+        self.image_feature_size = kwargs.pop("image_feature_size", 64) # Số chiều đặc trưng của ảnh 
+
+        # Các token đặc biệt được sử dụng để mã hóa ảnh 
         self.im_start_token = kwargs.pop("im_start", "<image>")
         self.im_end_token = kwargs.pop("im_end", "</image>")
         self.slice_start_token = kwargs.pop("slice_start", "<slice>")
         self.slice_end_token = kwargs.pop("slice_end", "</slice>")
-        self.unk_token = kwargs.pop("unk", "<unk>")
+        self.unk_token = kwargs.pop("unk", "<unk>") # Token <unk> cho patch chưa biết 
+
         self.im_id_start = kwargs.pop("im_id_start", "<image_id>")
         self.im_id_end = kwargs.pop("im_id_end", "</image_id>")
-        self.slice_mode = kwargs.pop("slice_mode", True)
+        self.slice_mode = kwargs.pop("slice_mode", True) # Có xử lý theo lát cắt ảnh không 
 
+        # Chuẩn hóa theo mean và std
         self.mean = np.array(kwargs.pop("norm_mean", [0.5, 0.5, 0.5]))
         self.std = np.array(kwargs.pop("norm_std", [0.5, 0.5, 0.5]))
+        
         self.version = kwargs.pop("version", 2.0)
+    # TODO: https://chatgpt.com/c/683dad62-5b08-800a-84b1-4aa47a6876b3
+    def ensure_divide(self, length: int, patch_size: int) -> int:
+        """
+        Đảm bảo kích thước `length` chia hết cho `patch_size`.
 
-    def ensure_divide(self, length, patch_size):
+        Args:
+            length (int): Chiều dài hoặc chiều rộng ban đầu.
+            patch_size (int): Kích thước của patch (ô ảnh) mà mô hình yêu cầu.
+
+        Returns:
+            int: Kích thước đã được làm tròn sao cho chia hết cho `patch_size`, 
+                ít nhất bằng `patch_size`.
+        """
+        # Làm tròn để chia hết cho patch_size, nhưng không nhỏ hơn patch_size
         return max(round(length / patch_size) * patch_size, patch_size)
     
-    def find_best_resize(self, original_size: int, scale_resolution: int, patch_size: int, allow_upscale:bool=False) -> Tuple[int, int]:
+    def find_best_resize( 
+            self, 
+            original_size: Tuple[int, int], 
+            scale_resolution: int, 
+            patch_size: int, 
+            allow_upscale: bool = False
+        ) -> Tuple[int, int]:
         """Adaptive Visual Encoding method proposed by LLaVA-UHD."""
         width, height = original_size
         if (width * height > scale_resolution * scale_resolution) or allow_upscale:
