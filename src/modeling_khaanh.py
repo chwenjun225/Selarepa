@@ -2379,12 +2379,12 @@ class DVAE(nn.Module):
         return torch.mul(dec_out, self.coef, out=dec_out)
 
 def apply_spk_emb(
-    input_ids: torch.Tensor = None,
-    spk_emb: torch.Tensor = None,
-    input_embeds: torch.Tensor = None,
-    spk_emb_token_id: int = 0,
-    num_spk_embs: int = 1,
-):
+        input_ids: torch.Tensor = None,
+        spk_emb: torch.Tensor = None,
+        input_embeds: torch.Tensor = None,
+        spk_emb_token_id: int = 0,
+        num_spk_embs: int = 1,
+    ):
     """
     Replace consecutive `num_spk_embs` speaker embedding placeholders in input_embeds with pre-prepared speaker embeddings. This is an in-place replacement, no new tensor is created, so no value is returned.
     Args:

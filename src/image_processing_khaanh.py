@@ -51,7 +51,11 @@ class KhaanhBatchFeature(BatchFeature):
             chuyển đổi dữ liệu sang (ví dụ: "pt", "tf", v.v.).
     """
 
-    def __init__(self, data: Optional[Dict[str, Any]] = None, tensor_type: Union[None, str, TensorType] = None):
+    def __init__(
+            self, 
+            data: Optional[Dict[str, Any]] = None, 
+            tensor_type: Union[None, str, TensorType] = None
+        ):
         """
         Khởi tạo `KhaanhBatchFeature`, đồng thời chuyển đổi dữ liệu 
         sang tensor nếu chỉ định.
