@@ -771,8 +771,7 @@ class KhaanhImageProcessor(BaseImageProcessor):
                         image, ChannelDimension.FIRST, 
                         input_channel_dim=input_data_format
                     )
-                    for image in image_patches
-                ]
+                    for image in image_patches]
 
                 # Chia từng lát ảnh thành patch, lưu lại 
                 for slice_image in image_patches:
