@@ -3,7 +3,7 @@
     "auto_map": {
         "AutoProcessor": "processing_khaanh.KhaanhProcessor",
         "AutoImageProcessor": "image_processing_khaanh.KhaanhImageProcessor"
-      },
+    },
     "processor_class": "KhaanhProcessor",
     "max_slice_nums": 9,
     "scale_resolution": 448,

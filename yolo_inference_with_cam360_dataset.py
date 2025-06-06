@@ -52,12 +52,10 @@ def process_videos(input_folder: str, output_folder: str, model_path: str) -> No
 
         while True:
             ret, frame = cap.read()
-            if not ret:
-                break
+            if not ret: break
 
             results = yolo(frame)
-            if not results:
-                continue
+            if not results: continue
             result = results[0]
 
             # Save original frame
@@ -78,22 +76,18 @@ def process_videos(input_folder: str, output_folder: str, model_path: str) -> No
                         conf = float(box.conf[0])
                         x1, y1, x2, y2 = map(float, box.xyxy[0])
                         f.write(f"{cls} {conf:.4f} {x1:.2f} {y1:.2f} {x2:.2f} {y2:.2f}\n")
-
+                        
             global_frame_index += 1
-
         cap.release()
 
     print(f"Processing completed. Results saved in {output_path}")
 
 def run_commands() -> None:
-    """
-    Run a predefined command to evaluate all videos using the process_videos script.
-    """
+    """Run a predefined command to evaluate all videos using the process_videos script."""
     process_videos(
         input_folder="./datasets/Cam360",
         output_folder="./evals/Train_Fulian_25_04_20252",
-        model_path="./datasets/Cam360/Weight/Train_Fulian_25_04_20252/weights/best.pt"
-    )
+        model_path="./datasets/Cam360/Weight/Train_Fulian_25_04_20252/weights/best.pt")
 
 if __name__ == "__main__":
     fire.Fire({

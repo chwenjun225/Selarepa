@@ -1,4 +1,7 @@
-# Code reference from https://huggingface.co/openbmb/MiniCPM-o-2_6/blob/main/image_processing_minicpmv.py
+"""
+Code reference from https://huggingface.co/openbmb/MiniCPM-o-2_6/blob/main/image_processing_minicpmv.py
+"""
+
 import math
 from typing import Any
 from typing import Dict
@@ -88,7 +91,7 @@ class KhaanhBatchFeature(BatchFeature):
                 if not is_tensor(value):
                     tensor = as_tensor(value)
                     return tensor
-            except:  # noqa E722
+            except: # noqa E722
                 if key == "overflowing_values":
                     raise ValueError(
                         "Unable to create tensor returning overflowing values of different lengths. ")
@@ -210,7 +213,7 @@ class KhaanhImageProcessor(BaseImageProcessor):
         self.std = np.array(kwargs.pop("norm_std", [0.5, 0.5, 0.5]))
         
         self.version = kwargs.pop("version", 2.0)
-    # TODO: https://chatgpt.com/c/683dad62-5b08-800a-84b1-4aa47a6876b3
+
     def ensure_divide(self, length: int, patch_size: int) -> int:
         """
         Đảm bảo kích thước `length` chia hết cho `patch_size`.
@@ -233,51 +236,78 @@ class KhaanhImageProcessor(BaseImageProcessor):
             patch_size: int, 
             allow_upscale: bool = False
         ) -> Tuple[int, int]:
-        """Adaptive Visual Encoding method proposed by LLaVA-UHD."""
+        """
+        Adaptive Visual Encoding method proposed by LLaVA-UHD.
+
+        Tìm kích thước resize tốt nhất cho ảnh đầu vào để phù hợp với yêu cầu xử 
+            lý của mô hình. Triển khai thoe phương pháp Adaptive Visual Encoding 
+            của LLaVA-UHD.
+        
+        Args:
+            original_size (Tuple[int, int]): Kích thước gốc của ảnh (width, height).
+            scale_resolution (int): Kích thước đích (mức phân giải chuẩn).
+            patch_size (int): Kích thước của một patch ảnh nhỏ.
+            allow_upscale (bool, optional): Có cho phép phóng to ảnh nhưng phải nhỏ 
+                hơn `scale_resolution` không. Mặc định là False.
+        
+        Return: 
+            Tuple[int, int]: Kích thước mới (width, height) đã được căn chỉnh sao cho 
+                chia hết cho patch_size. 
+        """
         width, height = original_size
+
+        # Nếu diện tích ảnh lớn hơn mức scale chuẩn, hoặc được cho phép phóng to ảnh 
         if (width * height > scale_resolution * scale_resolution) or allow_upscale:
+            # TÍnh lại width và height mới theo tỷ lệ gốc, nhưng giới hạn theo scale_resolution 
             r = width / height
             height = int(scale_resolution / math.sqrt(r))
             width = int(height * r)
+        
+        # Đảm bảo kích thước mới chia hét cho patch_size 
         best_width = self.ensure_divide(width, patch_size)
         best_height = self.ensure_divide(height, patch_size)
+        
         return (best_width, best_height)
     
     def get_refine_size(
-            self,
-            original_size: Tuple[int, int],
-            grid: Tuple[int, int],
-            scale_resolution: int,
-            patch_size: int,
-            allow_upscale: bool = False
-        ):
+        self,
+        original_size: Tuple[int, int],
+        grid: Tuple[int, int],
+        scale_resolution: int,
+        patch_size: int,
+        allow_upscale: bool = False
+    ) -> Tuple[int, int]:
         """
-        Tính toán kích thước ảnh đã điều chỉnh (refined size) sao cho:
-        - Chia đều thành các ô lưới
-        - Phù hợp với độ phân giải và kích thước patch yêu cầu
+        Tính toán lại kích thước sao cho:
+        - Kích thước mới chia đều theo số lượng ô lưới (grid).
+        - Mỗi ô có kích thước tối ưu dựa trên độ phân giải mục tiêu và patch_size. 
+        - Kích thước đầu ra đảm bảo tương thích với mô hình xử lý ảnh (Ví dụ: cho
+            encoder hình ảnh trong multi-modal-model).
 
         Args:
-            original_size (Tuple[int, int]): Kích thước ảnh gốc (width, height)
-            grid (Tuple[int, int]): Số lượng ô theo chiều ngang và dọc (grid_x, grid_y)
-            scale_resolution (int): Độ phân giải mục tiêu để scale
-            patch_size (int): Kích thước patch muốn xử lý
-            allow_upscale (bool, optional): Có cho phép phóng to ảnh hay không
+            original_size (Tuple[int, int]): Kích thước ảnh gốc (width, height).
+            grid (Tuple[int, int]): Số lượng ô lưới theo chiều ngang và dọc (grid_x, grid_y).
+            scale_resolution (int): Độ phân giải mục tiêu để scale.
+            patch_size (int): Kích thước patch (ô vuông nhỏ) mà model sử dụng.
+            allow_upscale (bool, optional): Cho phép phóng to ảnh nếu ảnh quá nhỏ. 
+                Mặc định là False.
 
         Returns:
-            Tuple[int, int]: Kích thước mới (refined width, refined height)
+            Tuple[int, int]: Kích thước mới (refined width, refined height).
         """
         width, height = original_size 
         grid_x, grid_y = grid 
 
-        # Tính kích thước mới sao cho mỗi chiều chia hết cho số ô grid tương ứng 
+        # Làm tròn kích thước gốc sao cho chia hết cho số ô tương ứng 
         refine_width = self.ensure_divide(width, grid_x)
         refine_height = self.ensure_divide(height, grid_y)
 
-        # Tính kích thước mỗi ô lưới (grid cell) sau khi chia đều 
+        # Tính kích thước của mỗi ô trong lưới (sau khi chia đều) 
         grid_width = refine_width / grid_x
         grid_height = refine_height / grid_y
 
-        # Tìm kích thước mỗi ô grid tối ưu nhất (gần với scale_resolution, patch_size, etc)
+        # Tìm kích thước mỗi ô sao cho tối ưu hóa với patch_size và độ phân 
+        #   giải yêu cầu 
         best_grid_size = self.find_best_resize(
             (grid_width, grid_height), 
             scale_resolution, 
@@ -401,9 +431,8 @@ class KhaanhImageProcessor(BaseImageProcessor):
         slice_image_placeholder = (
             self.slice_start_token + \
             self.unk_token * self.image_feature_size + \
-            self.slice_end_token
-        )
-
+            self.slice_end_token)
+        
         cols, rows = grid 
         slices = []
 
@@ -417,13 +446,26 @@ class KhaanhImageProcessor(BaseImageProcessor):
         slice_placeholder = "\n".join(slices)  # Ghép các dòng thành block placeholder
         return slice_placeholder
 
-    def get_image_id_placeholder(self, idx=0):
+    def get_image_id_placeholder(self, idx: int=0) -> str:
+        """
+        Sinh chuỗi placeholder đại diện cho ID của ảnh, dùng để chèn vào 
+            chuỗi đầu vào chủa mô hình. 
+
+        Args:
+            idx (int, optional): Chỉ số ID của ảnh. Mặc định là 0. 
+
+        Returns:
+            str: Chuỗi định danh ảnh có định dạng như "<image_id>0</image_id>", 
+                dùng để phân biệt các ảnh trong đầu vào của chuỗi. 
+        """
+        # Tạo chuộ placeholder cho image ID bằng các cắt ghép token-bắt-đầu, 
+        #   chỉ-số-ID, và token-kết-thúc
         return f"{self.im_id_start}{idx}{self.im_id_end}"
     
     def get_sliced_images(
             self, 
             image: PIL.Image.Image, 
-            max_slice_nums: Optional[int] = None
+            max_slice_nums: Optional[int] = None, 
         ) -> List[PIL.Image.Image]:
         """
         Trả về danh sách các ảnh đã được chia lát từ ảnh đầu vào.
@@ -618,8 +660,8 @@ class KhaanhImageProcessor(BaseImageProcessor):
     def reshape_by_patch(self, image: np.ndarray) -> np.ndarray:
         """
         Biến ảnh thành dạng [C, patch_size, num_patches], nghĩa là chia 
-        theo từng dòng patch — thường dùng khi MiniCPM-o nạp từng patch như một 
-        chuỗi token liên tục.
+            theo từng dòng patch — thường dùng khi MiniCPM-o nạp từng patch như một 
+            chuỗi token liên tục.
 
         Args:
             image (np.ndarray): Ảnh đầu vào dạng Numpy array với shape [3, H, W], 
@@ -633,8 +675,8 @@ class KhaanhImageProcessor(BaseImageProcessor):
         image_tensor = torch.from_numpy(image)
         patch_size = self.patch_size 
 
-        # Dùng unfold để cắt ảnh thành các patch (flatten theo từng vòng)
-        # Kết quả shape: [C, patch_size * patch_size, num_patches]
+        # Dùng unfold để cắt ảnh thành các patch (flatten theo từng vòng).
+        #   Kết quả shape: [C, patch_size * patch_size, num_patches]
         patches = torch.nn.functional.unfold(
             image_tensor, 
             (patch_size, patch_size), 
@@ -643,10 +685,8 @@ class KhaanhImageProcessor(BaseImageProcessor):
 
         # Chuyển shape về [C, patch_size, patch_size, num_patches]
         patches = patches.reshape(image_tensor.size(0), patch_size, patch_size, -1) 
-
         # Đưa patch thành [C, patch_size, num_patches] bằng cách gộp lại 2 chiều cuối
         patches = patches.permute(0, 1, 3, 2).reshape(image_tensor.size(0), patch_size, -1)
-
         # Chuyển lại về Numpy Array để tương thích với các bước xử lý sau 
         return patches.numpy()
 
@@ -701,7 +741,7 @@ class KhaanhImageProcessor(BaseImageProcessor):
                 )
 
             # Đảm bảo ảnh có định dạng PIL và RGB
-            _images = [self.to_pil_image(image).convert("RGB") for image in _images]
+            _images: List[PIL.Image.Image] = [self.to_pil_image(image).convert("RGB") for image in _images]
 
             # Xác định thứ tự kênh (CHW hay HWC) từ ảnh đầu tiên
             input_data_format = infer_channel_dimension_format(np.array(_images[0]))
@@ -738,10 +778,7 @@ class KhaanhImageProcessor(BaseImageProcessor):
                 for slice_image in image_patches:
                     new_images.append(self.reshape_by_patch(slice_image))
                     tgt_sizes.append(
-                        np.array(
-                            (slice_image.shape[1] // self.patch_size, slice_image.shape[2] // self.patch_size)
-                        )
-                    )
+                        np.array((slice_image.shape[1] // self.patch_size, slice_image.shape[2] // self.patch_size)))
 
             if tgt_sizes:
                 tgt_sizes = np.vstack(tgt_sizes) # Stack các kích thước patch thành 2D array 
@@ -750,15 +787,11 @@ class KhaanhImageProcessor(BaseImageProcessor):
             image_sizes_list.append(image_sizes)
             tgt_sizes_list.append(tgt_sizes)
 
-
         # Trả về batch dạng KhaanhBatchFeature chứa pixel_values, image_sizes, tgt_sizes
         return KhaanhBatchFeature(
-            data={
-                "pixel_values": new_images_list,
-                "image_sizes": image_sizes_list,
-                "tgt_sizes": tgt_sizes_list
-            },
+            data={"pixel_values": new_images_list, "image_sizes": image_sizes_list, "tgt_sizes": tgt_sizes_list},
             tensor_type=return_tensors,
         )
+
 
 AutoImageProcessor.register("KhaanhImageProcessor", KhaanhImageProcessor)
