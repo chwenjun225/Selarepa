@@ -1,6 +1,4 @@
-"""
-Code reference from https://huggingface.co/openbmb/MiniCPM-o-2_6/blob/main/image_processing_minicpmv.py
-"""
+"""Code reference from https://huggingface.co/openbmb/MiniCPM-o-2_6/blob/main/image_processing_minicpmv.py"""
 
 import math
 from typing import Any
@@ -274,13 +272,13 @@ class KhaanhImageProcessor(BaseImageProcessor):
         return (best_width, best_height)
     
     def get_refine_size(
-        self,
-        original_size: Tuple[int, int],
-        grid: Tuple[int, int],
-        scale_resolution: int,
-        patch_size: int,
-        allow_upscale: bool = False
-    ) -> Tuple[int, int]:
+            self,
+            original_size: Tuple[int, int],
+            grid: Tuple[int, int],
+            scale_resolution: int,
+            patch_size: int,
+            allow_upscale: bool = False
+        ) -> Tuple[int, int]:
         """
         Tính toán lại kích thước sao cho:
         - Kích thước mới chia đều theo số lượng ô lưới (grid).

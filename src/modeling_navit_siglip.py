@@ -333,12 +333,8 @@ class SiglipVisionEmbeddings(nn.Module):
         max_nb_patches_h, max_nb_patches_w = max_im_h // self.patch_size, max_im_w // self.patch_size
         boundaries = torch.arange(1 / self.num_patches_per_side, 1.0, 1 / self.num_patches_per_side)
         position_ids = torch.full(
-            size=(
-                batch_size,
-                max_nb_patches_h * max_nb_patches_w,
-            ),
-            fill_value=0,
-        )
+            size=(batch_size,max_nb_patches_h * max_nb_patches_w),
+            fill_value=0)
 
         for batch_idx, p_attn_mask in enumerate(patch_attention_mask):
             if tgt_sizes is not None:

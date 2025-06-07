@@ -3176,7 +3176,7 @@ def prepare_inputs_for_generation(
         dtype = self.lm_head.weight.dtype
         min_dtype = torch.finfo(dtype).min
 
-        attention_mask = _prepare_4d_causal_attention_mask_with_cache_position(
+        attention_mask = _prepare_4d_causal_attention_mask_with_cache_position( 
             attention_mask,
             sequence_length=sequence_length,
             target_length=past_key_values.get_max_length(),

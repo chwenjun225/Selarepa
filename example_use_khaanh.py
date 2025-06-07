@@ -1,19 +1,21 @@
 import math
 import fire
-import matplotlib.pyplot as plt
 import numpy as np
 import torch 
+import matplotlib.pyplot as plt
+
 from typing import List 
 from PIL import Image
+from huggingface_hub import hf_hub_download
+from safetensors.torch import load_file as load_safetensors
 
+from src.modeling_navit_siglip import SiglipVisionConfig
 from src.modeling_navit_siglip import SiglipVisionTransformer
-
 from src.image_processing_khaanh import KhaanhImageProcessor
 
 
 # Đường dẫn mặc định đến ảnh test
 DEFAULT_IMAGE_PATH = "/home/chwenjun225/projects/Selarepa/data/Cam360/Inferenced_Train_Fulian_25_04_20252/original_frames/000000.jpg"
-
 
 def load_image(path: str) -> Image.Image:
     """Tải ảnh RGB từ đường dẫn."""
@@ -103,4 +105,5 @@ def test_image_processing_khaanh_module(image_path: str = DEFAULT_IMAGE_PATH):
 if __name__ == "__main__":
     fire.Fire({
         "img_proc_module": test_image_processing_khaanh_module,
+        "visual_encoder": test_siglip_visual_encoder_module, # TODO: Cần xem lại cách minicpm 
     })
