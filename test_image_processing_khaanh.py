@@ -1,8 +1,12 @@
 import math
 import fire
-from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
+import torch 
+from typing import List 
+from PIL import Image
+
+from src.modeling_navit_siglip import SiglipVisionTransformer
 
 from src.image_processing_khaanh import KhaanhImageProcessor
 
@@ -45,7 +49,7 @@ def plot_image_list(images: list[Image.Image], cols: int = 4):
     plt.show()
 
 
-def test_all(image_path: str = DEFAULT_IMAGE_PATH):
+def test_image_processing_khaanh_module(image_path: str = DEFAULT_IMAGE_PATH):
     image = load_image(image_path)
     processor = KhaanhImageProcessor()
 
@@ -98,5 +102,5 @@ def test_all(image_path: str = DEFAULT_IMAGE_PATH):
 
 if __name__ == "__main__":
     fire.Fire({
-        "test_all": test_all,
+        "img_proc_module": test_image_processing_khaanh_module,
     })

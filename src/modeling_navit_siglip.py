@@ -297,6 +297,7 @@ class SiglipVisionModelOutput(ModelOutput):
 
 
 class SiglipVisionEmbeddings(nn.Module):
+    """Nhúng ảnh đầu vào thành vector (giống patch embedding)."""
     def __init__(self, config: SiglipVisionConfig):
         super().__init__()
         self.config = config
@@ -363,7 +364,11 @@ class SiglipVisionEmbeddings(nn.Module):
 
 
 class SiglipAttention(nn.Module):
-    """Multi-headed attention from 'Attention Is All You Need' paper"""
+    """
+    Multi-headed attention from 'Attention Is All You Need' paper
+    
+    Lớp attention trong transformer encoder.
+    """
 
     # Copied from transformers.models.clip.modeling_clip.CLIPAttention.__init__
     def __init__(self, config):
@@ -674,7 +679,7 @@ class SiglipEncoderLayer(nn.Module):
         hidden_states, attn_weights = self.self_attn(
             hidden_states=hidden_states,
             attention_mask=attention_mask,
-            output_attentions=output_attentions,
+            output_attentions=output_attentions
         )
         hidden_states = residual + hidden_states
 
@@ -693,8 +698,8 @@ class SiglipEncoderLayer(nn.Module):
 
 class SiglipPreTrainedModel(PreTrainedModel):
     """
-    An abstract class to handle weights initialization and a simple interface for downloading and loading pretrained
-    models.
+    An abstract class to handle weights initialization and a simple 
+    interface for downloading and loading pretrained models.
     """
 
     config_class = SiglipVisionConfig
@@ -765,8 +770,9 @@ SIGLIP_VISION_INPUTS_DOCSTRING = r"""
 # Copied from transformers.models.clip.modeling_clip.CLIPEncoder with CLIP->Siglip
 class SiglipEncoder(nn.Module):
     """
-    Transformer encoder consisting of `config.num_hidden_layers` self attention layers. Each layer is a
-    [`SiglipEncoderLayer`].
+    Transformer encoder consisting of `config.num_hidden_layers` self attention layers. 
+    Each layer is a [`SiglipEncoderLayer`].
+    
     Args:
         config: SiglipConfig
     """

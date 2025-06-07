@@ -13,7 +13,6 @@ from .modeling_navit_siglip import SiglipVisionConfig
 
 logger = logging.get_logger(__name__)
 
-
 class KhaanhSliceConfig(PretrainedConfig):
     """
     Cấu hình cho module xử lý slice ảnh trong mô hình.
@@ -28,12 +27,12 @@ class KhaanhSliceConfig(PretrainedConfig):
     model_type = "khaanh"
 
     def __init__(
-        self,
-        patch_size: int = 14,
-        max_slice_nums: int = 9,
-        scale_resolution: int = 448,
-        **kwargs,
-    ):
+            self,
+            patch_size: int = 14,
+            max_slice_nums: int = 9,
+            scale_resolution: int = 448,
+            **kwargs,
+        ):
         """
         Khởi tạo cấu hình slice cho mô hình MiniCPM-o.
 
@@ -82,7 +81,6 @@ class KhaanhSliceConfig(PretrainedConfig):
                 f"You are using a model of type {config_dict['model_type']} to instantiate a model of type "
                 f"{cls.model_type}. This is not supported for all configurations of models and can yield errors."
             )
-        
         return cls.from_dict(config_dict, **kwargs)
 
 class ConditionalChatTTSConfig(PretrainedConfig):
@@ -254,7 +252,7 @@ class KhaanhConfig(Qwen2Config):
             **kwargs,
         ):
         """
-        Hub trung tâm định nghĩa cấu trúc và hành vi cho các mô đun phụ của mô hình.
+        Khai báo cấu trúc và hành vi cho các mô đun phụ của mô hình.
 
         Args:
             use_cache (bool): Có sử dụng bộ nhớ attention trong inference không.
@@ -331,94 +329,3 @@ class KhaanhConfig(Qwen2Config):
 
         # Gọi constructor cha (Qwen2)
         super().__init__(**kwargs)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
