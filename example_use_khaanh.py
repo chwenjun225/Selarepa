@@ -9,9 +9,9 @@ from PIL import Image
 from huggingface_hub import hf_hub_download
 from safetensors.torch import load_file as load_safetensors
 
-from src.modeling_navit_siglip import SiglipVisionConfig
-from src.modeling_navit_siglip import SiglipVisionTransformer
-from src.image_processing_khaanh import KhaanhImageProcessor
+from .lib.khaanh.modeling_navit_siglip import SiglipVisionConfig
+from .lib.khaanh.modeling_navit_siglip import SiglipVisionTransformer
+from .lib.khaanh.image_processing_khaanh import KhaanhImageProcessor
 
 
 # Đường dẫn mặc định đến ảnh test
@@ -105,5 +105,5 @@ def test_image_processing_khaanh_module(image_path: str = DEFAULT_IMAGE_PATH):
 if __name__ == "__main__":
     fire.Fire({
         "img_proc_module": test_image_processing_khaanh_module,
-        "visual_encoder": test_siglip_visual_encoder_module, # TODO: Cần xem lại cách minicpm 
+        "visual_encoder": test_siglip_visual_encoder_module, # TODO: Cần xem lại cách minicpm  # type: ignore
     })
