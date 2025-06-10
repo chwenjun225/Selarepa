@@ -5,9 +5,12 @@ import shutil
 import numpy as np 
 from PIL import Image 
 from pathlib import Path 
+from datetime import datetime
+
 from typing import List 
 from typing import Tuple  
-from datetime import datetime
+from typing import Dict 
+from typing import Optional 
 
 import torch 
 from ultralytics import YOLO
@@ -15,6 +18,8 @@ from ultralytics import YOLO
 from transformers import AutoModel 
 from transformers import AutoTokenizer 
 from transformers import AutoProcessor 
+from transformers import PreTrainedTokenizer 
+from transformers import PreTrainedModel 
 
 # -------------------------------------- Inference with cam360 datasets --------------------------------------
 
@@ -141,95 +146,80 @@ def inference_cam360_dataset() -> None:
 
 # -------------------------------------- Inference with cam360 datasets -------------------------------------- 
 # -------------------------------------- Self-Label-Repair-System -------------------------------------- 
-
-# TODO: Tomorrow run this 
 def load_image(image_path: Path) -> torch.Tensor:
-    """
-    Load ảnh từ đường dẫn và chuyển về tensor PyTorch [3, H, W] kiểu uint8.
-
-    Args:
-        image_path (Path): Đường dẫn tới file ảnh.
-
-    Returns:
-        torch.Tensor: Ảnh dạng tensor RGB [3, H, W], dtype=uint8.
-    """
-    image = cv2.imread(str(image_path)) # BGR
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) # RGB
-    tensor = torch.from_numpy(image).permute(2, 0, 1) # [H, W, C] -> [C, H, W]
-    return tensor
+    """Load ảnh từ file và chuyển về tensor [3, H, W]."""
+    image = cv2.imread(str(image_path))
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    return torch.from_numpy(image).permute(2, 0, 1)
 
 
 def read_yolo_labels(label_path: Path) -> List[str]:
-    """
-    Đọc file nhãn YOLO (.txt), trả về list các dòng.
-
-    Args:
-        label_path (Path): Đường dẫn tới file label.
-
-    Returns:
-        List[str]: Danh sách các dòng nhãn.
-    """
+    """Đọc file YOLO .txt và trả về danh sách các dòng nhãn."""
     with open(label_path, 'r') as f:
-        return [line.strip() for line in f.readlines()]
+        return [line.strip() for line in f if line.strip()]
 
-
-def crop_object(image: torch.Tensor, box: List[float]) -> Image.Image:
-    """
-    Crop object từ ảnh dựa vào tọa độ YOLO và trả về ảnh PIL.
-
-    Args:
-        image (torch.Tensor): Tensor ảnh [3, H, W].
-        box (List[float]): Tọa độ bounding box [x1, y1, x2, y2].
-
-    Returns:
-        Image.Image: Ảnh đã crop (PIL).
-    """
+def crop_object(image: torch.Tensor, box: List[float]) -> Optional[Image.Image]:
+    """Cắt object theo bbox, trả về ảnh PIL."""
+    C, H, W = image.shape
     x1, y1, x2, y2 = map(int, box)
+    x1, y1, x2, y2 = expand_bbox(x1, y1, x2, y2, W, H)
+
     cropped = image[:, y1:y2, x1:x2]
     if cropped.shape[1] == 0 or cropped.shape[2] == 0:
-        return None  # Box lỗi
-    pil = Image.fromarray(cropped.permute(1, 2, 0).cpu().numpy().astype("uint8"))
-    return pil
+        return None
+    return Image.fromarray(cropped.permute(1, 2, 0).cpu().numpy().astype("uint8"))
 
 
-def verify_object_label(
+
+def expand_bbox(x1: int, y1: int, x2: int, y2: int, max_w: int, max_h: int, delta: int = 6) -> List[int]:
+    """Giãn bounding box và đảm bảo không vượt ra ngoài ảnh."""
+    x1 = max(0, x1 - delta // 2)
+    y1 = max(0, y1 - delta // 2)
+    x2 = min(max_w, x2 + delta // 2)
+    y2 = min(max_h, y2 + delta // 2)
+    return [x1, y1, x2, y2]
+
+
+def verify_object_label_with_class_options(
     object_image: Image.Image,
     label_name: str,
-    tokenizer,
-    model
-) -> Tuple[bool, str]:
+    tokenizer: PreTrainedTokenizer,
+    model: PreTrainedModel,
+    class_labels: Dict[int, str]
+) -> Tuple[bool, Optional[str]]:
     """
-    Dùng MMLLM xác minh xem object trong ảnh có khớp với label_name không.
-
-    Args:
-        object_image (Image.Image): Ảnh đã crop.
-        label_name (str): Tên label dự đoán từ YOLO.
-        tokenizer, model: MiniCPM model và tokenizer.
+    Xác minh object có đúng label hay không, và nếu sai thì gợi ý nhãn khác.
 
     Returns:
-        Tuple[bool, str]: (có khớp không, tên label mô hình nghĩ là gì).
+        - (True, None): nếu khớp với label_name.
+        - (False, new_label): nếu model gợi ý nhãn khác hợp lệ.
+        - (False, None): nếu model không gợi ý được gì hữu ích.
     """
-    prompt = f"Is this a {label_name}?"
+    options = ', '.join(class_labels.values())
+    prompt = f"Which of the following best describes the object in the image: {options}?"
     msgs = [{'role': 'user', 'content': [object_image, prompt]}]
-    answer: str = model.chat(image=None, msgs=msgs, tokenizer=tokenizer)
-    return "yes" in answer.lower(), answer.strip()
+    answer = model.chat(image=None, msgs=msgs, tokenizer=tokenizer).strip().lower()
+
+    # Khớp với nhãn hiện tại
+    if label_name.lower() == answer:
+        return True, None
+
+    # Tìm nhãn khác phù hợp
+    for label in class_labels.values():
+        if label.lower() in answer:
+            return False, label
+
+    return False, None
 
 
 def run_relabel_pipeline(
+    limit: int = 1000,
     data_dir: str = "./evals/Train_Fulian_25_04_20252",
     output_dir: str = "./relabel_data",
-    limit: int = 1000,
     model_name: str = "openbmb/MiniCPM-o-2_6"
 ) -> None:
-    """
-    Pipeline xác minh từng object và sửa label sai. Lưu kết quả để fine-tune YOLO.
+    """Pipeline xác minh nhãn từng object và sửa nếu sai, lưu vào thư mục riêng."""
 
-    Args:
-        data_dir (str): Thư mục chứa ảnh và nhãn gốc.
-        output_dir (str): Thư mục lưu ảnh/nhãn đã sửa.
-        limit (int): Số lượng tối đa mẫu sửa để thu thập.
-        model_name (str): Tên mô hình MiniCPM.
-    """
     input_image_dir = Path(data_dir) / "original_frames"
     input_label_dir = Path(data_dir) / "txt_labels"
     output_image_dir = Path(output_dir) / "images"
@@ -254,7 +244,7 @@ def run_relabel_pipeline(
         4: "BlueUniform", 5: "WhiteUniform", 6: "BlackUniform",
         7: "OtherUniform", 8: "Bending", 9: "FireExtinguisher"
     }
-    label2id = {v: k for k, v in class_labels.items()}
+    label2id = {v.lower(): k for k, v in class_labels.items()}
 
     image_paths = sorted(input_image_dir.glob("*.jpg"))
     collected = 0
@@ -262,6 +252,7 @@ def run_relabel_pipeline(
     for img_path in image_paths:
         if collected >= limit:
             break
+
         label_path = input_label_dir / f"{img_path.stem}.txt"
         if not label_path.exists():
             continue
@@ -271,32 +262,32 @@ def run_relabel_pipeline(
         new_labels = []
 
         for line in label_lines:
-            parts = line.strip().split()
+            parts = line.split()
             if len(parts) != 6:
                 continue
             cls_id = int(parts[0])
             label_name = class_labels.get(cls_id, "Unknown")
-            box = list(map(float, parts[2:6]))  # x1 y1 x2 y2
+            box = list(map(float, parts[2:6]))
             obj_img = crop_object(image_tensor, box)
             if obj_img is None:
                 continue
 
-            match, predicted = verify_object_label(obj_img, label_name, tokenizer, model)
+            match, predicted = verify_object_label_with_class_options(
+                obj_img, label_name, tokenizer, model, class_labels
+            )
+
             if match:
                 new_labels.append(line)
-            else:
-                pred_id = label2id.get(predicted, -1)
-                if pred_id == -1:
-                    continue
-                new_line = f"{pred_id} {parts[1]} {' '.join(parts[2:])}"
+            elif predicted and predicted.lower() in label2id:
+                new_id = label2id[predicted.lower()]
+                new_line = f"{new_id} {parts[1]} {' '.join(parts[2:])}"
                 new_labels.append(new_line)
 
-        # Lưu nếu có ít nhất 1 label bị sửa
         if new_labels and new_labels != label_lines:
             shutil.copy(img_path, output_image_dir / img_path.name)
             with open(output_label_dir / label_path.name, "w") as f:
-                for line in new_labels:
-                    f.write(line + "\n")
+                for l in new_labels:
+                    f.write(l + "\n")
             collected += 1
 
     print(f"🔁 Collected {collected} relabeled images at {output_dir}")
@@ -456,5 +447,4 @@ if __name__ == "__main__":
     fire.Fire({
         "run_inference_cam360_dataset": inference_cam360_dataset, 
         "relabel_objects": run_relabel_pipeline,
-        "run_self_label_repair": run_self_label_repair_system, 
     })
