@@ -215,10 +215,10 @@ def verify_object_label_with_class_options(
 def run_relabel_pipeline(
     limit: int = 1000,
     data_dir: str = "./evals/Train_Fulian_25_04_20252",
-    output_dir: str = "./relabel_data",
+    output_dir: str = "./verified_samples",
     model_name: str = "openbmb/MiniCPM-o-2_6"
 ) -> None:
-    """Pipeline xác minh nhãn từng object và sửa nếu sai, lưu vào thư mục riêng."""
+    """Tiếp tục pipeline xác minh và sửa nhãn, bỏ qua các ảnh đã xử lý."""
 
     input_image_dir = Path(data_dir) / "original_frames"
     input_label_dir = Path(data_dir) / "txt_labels"
@@ -246,12 +246,18 @@ def run_relabel_pipeline(
     }
     label2id = {v.lower(): k for k, v in class_labels.items()}
 
+    # Đếm số lượng ảnh đã xử lý
+    processed_files = set(f.stem for f in output_label_dir.glob("*.txt"))
+    collected = len(processed_files)
+
     image_paths = sorted(input_image_dir.glob("*.jpg"))
-    collected = 0
 
     for img_path in image_paths:
         if collected >= limit:
             break
+
+        if img_path.stem in processed_files:
+            continue  # Skip đã xử lý
 
         label_path = input_label_dir / f"{img_path.stem}.txt"
         if not label_path.exists():
@@ -290,161 +296,215 @@ def run_relabel_pipeline(
                     f.write(l + "\n")
             collected += 1
 
-    print(f"🔁 Collected {collected} relabeled images at {output_dir}")
-
+    print(f"🔁 Total collected: {collected} images (including previously processed) at {output_dir}")
 
 # -------------------------------------- Self-Label-Repair-System -------------------------------------- 
+
+# -------------------------------------- Sửa lại format yolov11 -------------------------------------- 
+def convert_labels_to_yolo_format(
+    label_dir: str = "./verified_samples/labels",
+    image_dir: str = "./verified_samples/images"
+) -> None:
+    """
+    Chuyển toàn bộ file label từ định dạng [class conf x1 y1 x2 y2]
+    → sang YOLO format [class x_center y_center width height] (chuẩn hóa theo ảnh).
+
+    Args:
+        label_dir (str): Thư mục chứa file .txt label.
+        image_dir (str): Thư mục chứa ảnh .jpg tương ứng.
+    """
+    label_dir = Path(label_dir)
+    image_dir = Path(image_dir)
+    label_files = list(label_dir.glob("*.txt"))
+    n_converted = 0
+
+    for label_file in label_files:
+        image_file = image_dir / (label_file.stem + ".jpg")
+        if not image_file.exists():
+            print(f"⚠️ Image file not found for {label_file.name}")
+            continue
+
+        img = cv2.imread(str(image_file))
+        h, w = img.shape[:2]
+
+        new_lines: List[str] = []
+        with open(label_file, "r") as f:
+            for line in f:
+                parts = line.strip().split()
+                if len(parts) != 6:
+                    continue  # skip invalid lines
+                cls_id, conf, x1, y1, x2, y2 = parts
+                x1, y1, x2, y2 = map(float, (x1, y1, x2, y2))
+                xc = (x1 + x2) / 2 / w
+                yc = (y1 + y2) / 2 / h
+                bw = (x2 - x1) / w
+                bh = (y2 - y1) / h
+                new_line = f"{cls_id} {xc:.6f} {yc:.6f} {bw:.6f} {bh:.6f}"
+                new_lines.append(new_line)
+
+        with open(label_file, "w") as f:
+            for line in new_lines:
+                f.write(line + "\n")
+        n_converted += 1
+
+    print(f"✅ Converted {n_converted} label files to YOLOv8 training format.")
+# -------------------------------------- Sửa lại format yolov11 -------------------------------------- 
+
+
 # -------------------------------------- Fine-tune mô hình YOLO mới từ các ảnh đã xác thực -------------------------------------- 
 
 
-def fine_tune_yolo_on_verified_data(
-    verified_data_dir: str = "./verified_samples",
-    old_model_path: str = "./data/Cam360/Weight/Train_Fulian_25_04_20252/weights/best.pt",
-    save_dir: str = "./trained_new_yolo",
-    epochs: int = 20,
-    imgsz: int = 640
-) -> Path:
-    """
-    Fine-tune lại YOLO từ model cũ bằng tập dữ liệu đã xác thực.
+def check_verified_images(verified_data_dir: str, required: int = 1000) -> bool:
+    """Kiểm tra xem thư mục đã có đủ số lượng ảnh xác thực chưa."""
+    image_dir = Path(verified_data_dir) / "images"
+    image_count = len(list(image_dir.glob("*.jpg")))
+    print(f"📸 Found {image_count} verified images.")
+    return image_count >= required
 
-    Args:
-        verified_data_dir (str): Thư mục chứa "images" và "labels" từ bước xác thực.
-        old_model_path (str): Trọng số mô hình YOLO cũ.
-        save_dir (str): Nơi lưu kết quả training mới.
-        epochs (int): Số epoch để huấn luyện.
-        imgsz (int): Kích thước ảnh khi train.
 
-    Returns:
-        Path: Đường dẫn đến mô hình tốt nhất sau fine-tune.
-    """
-    data_yaml_path = Path(verified_data_dir) / "data.yaml"
+def generate_data_yaml(verified_data_dir: str) -> Path:
+    """Sinh file YAML mô tả dữ liệu huấn luyện YOLO (với đường dẫn tuyệt đối)."""
+    verified_data_dir = Path(verified_data_dir).resolve()
+    data_yaml_path = verified_data_dir / "data.yaml"
 
-    # Tạo file data.yaml cho YOLO
     with open(data_yaml_path, "w") as f:
         f.write(f"""
 path: {verified_data_dir}
 train: images
 val: images
-
 names:
-0: Person
-1: SafetyShoes
-2: ESDSlippers
-3: Head
-4: BlueUniform
-5: WhiteUniform
-6: BlackUniform
-7: OtherUniform
-8: Bending
-9: FireExtinguisher
+    0: Person
+    1: SafetyShoes
+    2: ESDSlippers
+    3: Head
+    4: BlueUniform
+    5: WhiteUniform
+    6: BlackUniform
+    7: OtherUniform
+    8: Bending
+    9: FireExtinguisher
 """)
+    return data_yaml_path
 
-    # Fine-tune YOLO
+
+def fine_tune_yolo(
+    verified_data_dir: str = "./verified_samples",
+    old_model_path: str = "./data/Cam360/Weight/Train_Fulian_25_04_20252/weights/best.pt",
+    save_dir: str = "./trained_new_yolo",
+    epochs: int = 100,
+    imgsz: int = 640, 
+) -> Optional[Path]:
+    """Fine-tune lại YOLO trên tập đã xác thực."""
+    if not check_verified_images(verified_data_dir):
+        print("⛔ Not enough verified images to fine-tune. Abort.")
+        return None
+
+    data_yaml = generate_data_yaml(verified_data_dir)
     model = YOLO(old_model_path)
     model.train(
-        data=str(data_yaml_path),
+        data=str(data_yaml),
         epochs=epochs,
         imgsz=imgsz,
         save=True,
         save_dir=save_dir,
-        project=None,
         name=None
     )
     return Path(save_dir) / "weights" / "best.pt"
 
 
-def evaluate_model(
-    model_path: str,
-    data_dir: str = "./evals/Train_Fulian_25_04_20252",
-    imgsz: int = 640
-) -> float:
-    """
-    Đánh giá mAP của một mô hình YOLO trên tập dữ liệu định trước.
-
-    Args:
-        model_path (str): Đường dẫn đến model YOLO định dạng .pt
-        data_dir (str): Thư mục chứa ảnh và nhãn (original_frames + txt_labels)
-        imgsz (int): Kích thước ảnh resize khi đánh giá
-
-    Returns:
-        float: Giá trị mAP50 thu được
-    """
-    # Tạo file YAML mô tả dữ liệu tạm thời
-    yaml_path = Path(data_dir) / "eval_data.yaml"
+def generate_eval_yaml(eval_data_dir: str) -> Path:
+    """Tạo YAML cho tập đánh giá."""
+    yaml_path = Path(eval_data_dir) / "eval_data.yaml"
     with open(yaml_path, "w") as f:
         f.write(f"""
-path: {data_dir}
+path: {eval_data_dir}
 train: original_frames
 val: original_frames
 names:
-0: Person
-1: SafetyShoes
-2: ESDSlippers
-3: Head
-4: BlueUniform
-5: WhiteUniform
-6: BlackUniform
-7: OtherUniform
-8: Bending
-9: FireExtinguisher
+    0: Person
+    1: SafetyShoes
+    2: ESDSlippers
+    3: Head
+    4: BlueUniform
+    5: WhiteUniform
+    6: BlackUniform
+    7: OtherUniform
+    8: Bending
+    9: FireExtinguisher
 """)
+    return yaml_path
 
-    # Load model và thực hiện đánh giá
+
+def evaluate_model(model_path: str, eval_data_dir: str, imgsz: int = 640) -> float: # TODO: ngày mai xem lại pipeline evaluation của yolo 
+    """Đánh giá mAP50 của một mô hình YOLO."""
+    yaml_path = generate_eval_yaml(eval_data_dir)
     model = YOLO(model_path)
-    metrics = model.val(data=str(yaml_path), imgsz=imgsz, split="val", save=False)
+    metrics = model.val(data=str(yaml_path), imgsz=imgsz)
     return metrics.box.map50
 
 
 def replace_model_if_better(
     old_model_path: str,
     new_model_path: str,
-    eval_data_dir: str = "./evals/Train_Fulian_25_04_20252"
+    eval_data_dir: str
 ) -> None:
-    """
-    So sánh model mới và model cũ, nếu model mới tốt hơn (mAP cao hơn) thì thay thế.
-
-    Args:
-        old_model_path (str): Trọng số mô hình đang dùng
-        new_model_path (str): Trọng số mô hình mới huấn luyện
-        eval_data_dir (str): Thư mục dữ liệu đánh giá (ảnh + label)
-    """
-    print("\n🔍 Evaluating old model...")
-    old_map = evaluate_model(old_model_path, data_dir=eval_data_dir)
+    """So sánh 2 mô hình và thay thế nếu mô hình mới tốt hơn."""
+    print("\n🔍 Evaluating current model...")
+    old_map = evaluate_model(old_model_path, eval_data_dir)
 
     print("\n🔍 Evaluating new model...")
-    new_map = evaluate_model(new_model_path, data_dir=eval_data_dir)
+    new_map = evaluate_model(new_model_path, eval_data_dir)
 
     print(f"\n📊 mAP50 - old: {old_map:.4f} | new: {new_map:.4f}")
 
     if new_map > old_map:
-        print("✅ New model is better. Replacing old model...")
+        print("✅ New model is better. Replacing old model.")
         os.replace(new_model_path, old_model_path)
     else:
-        print("⛔ Old model is better. Keeping original model.")
+        print("⛔ Old model is better. Keeping original.")
 
 
-def run_self_label_repair_system():
+def run_pipeline():
     """
-    Chạy toàn bộ pipeline self-label-repair:
-    1. Xác thực lại nhãn bằng MMLLM (MiniCPM)
-    2. Fine-tune YOLO trên ảnh đã xác thực
-    3. So sánh hiệu quả và thay thế model nếu cần
+    Pipeline tổng hợp:
+    - Fine-tune YOLO trên ảnh xác thực
+    - Đánh giá mAP
+    - Thay thế model nếu tốt hơn
     """
-    from self_label_repair import run_verification_pipeline, fine_tune_yolo_on_verified_data
+    verified_data = "./verified_samples"
+    eval_data = "./evals/Train_Fulian_25_04_20252"
+    old_model = "./data/Cam360/Weight/Train_Fulian_25_04_20252/weights/best.pt"
 
-    run_verification_pipeline()
-    best_new_model = fine_tune_yolo_on_verified_data()
-
-    replace_model_if_better(
-        old_model_path="./data/Cam360/Weight/Train_Fulian_25_04_20252/weights/best.pt",
-        new_model_path=str(best_new_model)
+    best_model = fine_tune_yolo(
+        verified_data_dir=verified_data,
+        old_model_path=old_model
     )
+
+    if best_model is not None:
+        replace_model_if_better(
+            old_model_path=old_model,
+            new_model_path=str(best_model),
+            eval_data_dir=eval_data
+        )
+
 
 # -------------------------------------- Fine-tune mô hình YOLO mới từ các ảnh đã xác thực -------------------------------------- 
 
 
 if __name__ == "__main__":
     fire.Fire({
+        # Test Cam360 inference dataset 
         "run_inference_cam360_dataset": inference_cam360_dataset, 
+
+        # VLM xác minh logs
         "relabel_objects": run_relabel_pipeline,
+
+        # Chuẩn hóa lại format yolov11
+        "convert_labels": convert_labels_to_yolo_format, 
+
+        # Fine-tune mô hình YOLO mới từ các ảnh đã xác thực
+        "run_pipeline": run_pipeline,
+        "fine_tune_yolo": fine_tune_yolo,
+        "evaluate_model": evaluate_model,
+        "replace_model_if_better": replace_model_if_better,
     })

@@ -3,6 +3,9 @@
 evals/Train_Fulian_25_04_20252/
 Cam360/
 relabel_data/
+verified_samples/
+runs/
+yolo11n.pt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
