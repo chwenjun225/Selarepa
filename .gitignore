@@ -1,7 +1,7 @@
 # Added by chwenjun225
 *.mp4
 evals/Train_Fulian_25_04_20252/
-Cam360/
+src/data/
 relabel_data/
 verified_samples/
 runs/

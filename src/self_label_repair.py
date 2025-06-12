@@ -21,8 +21,9 @@ from transformers import AutoProcessor
 from transformers import PreTrainedTokenizer 
 from transformers import PreTrainedModel 
 
-# -------------------------------------- Inference with cam360 datasets --------------------------------------
 
+
+# -------------------------------------- Inference with cam360 datasets --------------------------------------
 def collect_video_paths(root_dir: str) -> List[Path]:
     """
     Recursively collect all .mp4 video file paths from a root directory.
@@ -35,7 +36,6 @@ def collect_video_paths(root_dir: str) -> List[Path]:
     """
     root_path = Path(root_dir)
     return list(root_path.rglob("*.mp4"))
-
 
 def write_yolo_txt_with_labels(
         result,
@@ -63,7 +63,6 @@ def write_yolo_txt_with_labels(
 
                 label = class_labels.get(cls, f"Unknown{cls}") if use_label_str else cls
                 f.write(f"{label} {conf:.4f} {x1:.2f} {y1:.2f} {x2:.2f} {y2:.2f}\n")
-
 
 def process_videos(input_folder: str, output_folder: str, model_path: str) -> None:
     """
@@ -143,15 +142,16 @@ def inference_cam360_dataset() -> None:
         input_folder=f"{os.getcwd()}/data/Cam360",
         output_folder=f"{os.getcwd()}/evals/Train_Fulian_25_04_20252",
         model_path=f"{os.getcwd()}/data/Cam360/Weight/Train_Fulian_25_04_20252/weights/best.pt")
-
 # -------------------------------------- Inference with cam360 datasets -------------------------------------- 
-# -------------------------------------- Self-Label-Repair-System -------------------------------------- 
+
+
+
+# -------------------------------------- Verify label is True or False -------------------------------------- 
 def load_image(image_path: Path) -> torch.Tensor:
     """Load ảnh từ file và chuyển về tensor [3, H, W]."""
     image = cv2.imread(str(image_path))
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return torch.from_numpy(image).permute(2, 0, 1)
-
 
 def read_yolo_labels(label_path: Path) -> List[str]:
     """Đọc file YOLO .txt và trả về danh sách các dòng nhãn."""
@@ -169,8 +169,6 @@ def crop_object(image: torch.Tensor, box: List[float]) -> Optional[Image.Image]:
         return None
     return Image.fromarray(cropped.permute(1, 2, 0).cpu().numpy().astype("uint8"))
 
-
-
 def expand_bbox(x1: int, y1: int, x2: int, y2: int, max_w: int, max_h: int, delta: int = 6) -> List[int]:
     """Giãn bounding box và đảm bảo không vượt ra ngoài ảnh."""
     x1 = max(0, x1 - delta // 2)
@@ -179,14 +177,13 @@ def expand_bbox(x1: int, y1: int, x2: int, y2: int, max_w: int, max_h: int, delt
     y2 = min(max_h, y2 + delta // 2)
     return [x1, y1, x2, y2]
 
-
 def verify_object_label_with_class_options(
-    object_image: Image.Image,
-    label_name: str,
-    tokenizer: PreTrainedTokenizer,
-    model: PreTrainedModel,
-    class_labels: Dict[int, str]
-) -> Tuple[bool, Optional[str]]:
+        object_image: Image.Image,
+        label_name: str,
+        tokenizer: PreTrainedTokenizer,
+        model: PreTrainedModel,
+        class_labels: Dict[int, str]
+    ) -> Tuple[bool, Optional[str]]:
     """
     Xác minh object có đúng label hay không, và nếu sai thì gợi ý nhãn khác.
 
@@ -210,7 +207,6 @@ def verify_object_label_with_class_options(
             return False, label
 
     return False, None
-
 
 def run_relabel_pipeline(
     limit: int = 1000,
@@ -297,17 +293,18 @@ def run_relabel_pipeline(
             collected += 1
 
     print(f"🔁 Total collected: {collected} images (including previously processed) at {output_dir}")
+# -------------------------------------- Verify label is True or False -------------------------------------- 
 
-# -------------------------------------- Self-Label-Repair-System -------------------------------------- 
 
-# -------------------------------------- Sửa lại format yolov11 -------------------------------------- 
+
+# -------------------------------------- Chuẩn hóa lại format yolov11 -------------------------------------- 
 def convert_labels_to_yolo_format(
-    label_dir: str = "./verified_samples/labels",
-    image_dir: str = "./verified_samples/images"
-) -> None:
+        label_dir: str = "./verified_samples/labels",  
+        image_dir: str = "./verified_samples/images",  
+    ) -> None:
     """
-    Chuyển toàn bộ file label từ định dạng [class conf x1 y1 x2 y2]
-    → sang YOLO format [class x_center y_center width height] (chuẩn hóa theo ảnh).
+    Chuyển toàn bộ file label từ định dạng [class conf x1 y1 x2 y2] 
+    -> sang YOLO format [class x_center y_center width height] (chuẩn hóa theo ảnh).
 
     Args:
         label_dir (str): Thư mục chứa file .txt label.
@@ -348,19 +345,17 @@ def convert_labels_to_yolo_format(
         n_converted += 1
 
     print(f"✅ Converted {n_converted} label files to YOLOv8 training format.")
-# -------------------------------------- Sửa lại format yolov11 -------------------------------------- 
+# -------------------------------------- Chuẩn hóa lại format yolov11 -------------------------------------- 
 
 
-# -------------------------------------- Fine-tune mô hình YOLO mới từ các ảnh đã xác thực -------------------------------------- 
 
-
+# -------------------------------------- Fine-tune YOLOv11 từ các ảnh đã xác thực -------------------------------------- 
 def check_verified_images(verified_data_dir: str, required: int = 1000) -> bool:
     """Kiểm tra xem thư mục đã có đủ số lượng ảnh xác thực chưa."""
     image_dir = Path(verified_data_dir) / "images"
     image_count = len(list(image_dir.glob("*.jpg")))
     print(f"📸 Found {image_count} verified images.")
     return image_count >= required
-
 
 def generate_data_yaml(verified_data_dir: str) -> Path:
     """Sinh file YAML mô tả dữ liệu huấn luyện YOLO (với đường dẫn tuyệt đối)."""
@@ -386,7 +381,6 @@ names:
 """)
     return data_yaml_path
 
-
 def fine_tune_yolo(
     verified_data_dir: str = "./verified_samples",
     old_model_path: str = "./data/Cam360/Weight/Train_Fulian_25_04_20252/weights/best.pt",
@@ -410,8 +404,11 @@ def fine_tune_yolo(
         name=None
     )
     return Path(save_dir) / "weights" / "best.pt"
+# -------------------------------------- Fine-tune mô hình YOLO mới từ các ảnh đã xác thực -------------------------------------- 
 
 
+
+# -------------------------------------- Evaluation mô hình YOLOv11 -------------------------------------- 
 def generate_eval_yaml(eval_data_dir: str) -> Path:
     """Tạo YAML cho tập đánh giá."""
     yaml_path = Path(eval_data_dir) / "eval_data.yaml"
@@ -434,14 +431,12 @@ names:
 """)
     return yaml_path
 
-
 def evaluate_model(model_path: str, eval_data_dir: str, imgsz: int = 640) -> float: # TODO: ngày mai xem lại pipeline evaluation của yolo 
     """Đánh giá mAP50 của một mô hình YOLO."""
     yaml_path = generate_eval_yaml(eval_data_dir)
     model = YOLO(model_path)
     metrics = model.val(data=str(yaml_path), imgsz=imgsz)
     return metrics.box.map50
-
 
 def replace_model_if_better(
     old_model_path: str,
@@ -462,7 +457,6 @@ def replace_model_if_better(
         os.replace(new_model_path, old_model_path)
     else:
         print("⛔ Old model is better. Keeping original.")
-
 
 def run_pipeline():
     """
@@ -486,25 +480,26 @@ def run_pipeline():
             new_model_path=str(best_model),
             eval_data_dir=eval_data
         )
+# -------------------------------------- Evaluation mô hình YOLOv11 -------------------------------------- 
 
-
-# -------------------------------------- Fine-tune mô hình YOLO mới từ các ảnh đã xác thực -------------------------------------- 
 
 
 if __name__ == "__main__":
     fire.Fire({
-        # Test Cam360 inference dataset 
+        # Inference with cam360 datasets
         "run_inference_cam360_dataset": inference_cam360_dataset, 
 
-        # VLM xác minh logs
+        # Verify label is True or False
         "relabel_objects": run_relabel_pipeline,
 
         # Chuẩn hóa lại format yolov11
         "convert_labels": convert_labels_to_yolo_format, 
 
-        # Fine-tune mô hình YOLO mới từ các ảnh đã xác thực
+        # Fine-tune YOLOv11 từ các ảnh đã xác thực
         "run_pipeline": run_pipeline,
         "fine_tune_yolo": fine_tune_yolo,
+
+        # Evaluation mô hình YOLOv11
         "evaluate_model": evaluate_model,
         "replace_model_if_better": replace_model_if_better,
     })
