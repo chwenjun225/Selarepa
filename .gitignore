@@ -5,6 +5,7 @@ src/data/
 relabel_data/
 verified_samples/
 runs/
+/src/evals/
 yolo11n.pt
 
 # Byte-compiled / optimized / DLL files

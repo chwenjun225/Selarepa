@@ -1,11 +1,13 @@
 import os 
 import cv2
 import fire
+import random 
 import shutil
 import numpy as np 
 from PIL import Image 
 from pathlib import Path 
 from datetime import datetime
+from glob import glob
 
 from typing import List 
 from typing import Tuple  
@@ -20,8 +22,6 @@ from transformers import AutoTokenizer
 from transformers import AutoProcessor 
 from transformers import PreTrainedTokenizer 
 from transformers import PreTrainedModel 
-
-
 
 # -------------------------------------- Inference with cam360 datasets --------------------------------------
 def collect_video_paths(root_dir: str) -> List[Path]:
@@ -297,7 +297,7 @@ def run_relabel_pipeline(
 
 
 
-# -------------------------------------- Chuẩn hóa lại format yolov11 -------------------------------------- 
+# -------------------------------------- Chuẩn hóa lại theo format yolov11 -------------------------------------- 
 def convert_labels_to_yolo_format(
         label_dir: str = "./verified_samples/labels",  
         image_dir: str = "./verified_samples/images",  
@@ -345,78 +345,60 @@ def convert_labels_to_yolo_format(
         n_converted += 1
 
     print(f"✅ Converted {n_converted} label files to YOLOv8 training format.")
-# -------------------------------------- Chuẩn hóa lại format yolov11 -------------------------------------- 
+# -------------------------------------- Chuẩn hóa lại theo format yolov11 -------------------------------------- 
 
 
 
-# -------------------------------------- Fine-tune YOLOv11 từ các ảnh đã xác thực -------------------------------------- 
+# -------------------------------------- Fine-tune & Eval mô hình YOLOv11 -------------------------------------- 
 def check_verified_images(verified_data_dir: str, required: int = 1000) -> bool:
-    """Kiểm tra xem thư mục đã có đủ số lượng ảnh xác thực chưa."""
     image_dir = Path(verified_data_dir) / "images"
-    image_count = len(list(image_dir.glob("*.jpg")))
-    print(f"📸 Found {image_count} verified images.")
-    return image_count >= required
-
-def generate_data_yaml(verified_data_dir: str) -> Path:
-    """Sinh file YAML mô tả dữ liệu huấn luyện YOLO (với đường dẫn tuyệt đối)."""
-    verified_data_dir = Path(verified_data_dir).resolve()
-    data_yaml_path = verified_data_dir / "data.yaml"
-
-    with open(data_yaml_path, "w") as f:
-        f.write(f"""
-path: {verified_data_dir}
-train: images
-val: images
-names:
-    0: Person
-    1: SafetyShoes
-    2: ESDSlippers
-    3: Head
-    4: BlueUniform
-    5: WhiteUniform
-    6: BlackUniform
-    7: OtherUniform
-    8: Bending
-    9: FireExtinguisher
-""")
-    return data_yaml_path
-
-def fine_tune_yolo(
-    verified_data_dir: str = "./verified_samples",
-    old_model_path: str = "./data/Cam360/Weight/Train_Fulian_25_04_20252/weights/best.pt",
-    save_dir: str = "./trained_new_yolo",
-    epochs: int = 100,
-    imgsz: int = 640, 
-) -> Optional[Path]:
-    """Fine-tune lại YOLO trên tập đã xác thực."""
-    if not check_verified_images(verified_data_dir):
-        print("⛔ Not enough verified images to fine-tune. Abort.")
-        return None
-
-    data_yaml = generate_data_yaml(verified_data_dir)
-    model = YOLO(old_model_path)
-    model.train(
-        data=str(data_yaml),
-        epochs=epochs,
-        imgsz=imgsz,
-        save=True,
-        save_dir=save_dir,
-        name=None
-    )
-    return Path(save_dir) / "weights" / "best.pt"
-# -------------------------------------- Fine-tune mô hình YOLO mới từ các ảnh đã xác thực -------------------------------------- 
+    count = len(list(image_dir.glob("*.jpg")))
+    print(f"📸 Found {count} verified images.")
+    return count >= required
 
 
+def split_dataset(verified_dir: str, train_ratio: float = 0.8) -> tuple[Path, Path]:
+    """
+    Chia dữ liệu verified thành train/val theo tỷ lệ train_ratio.
+    """
+    images = sorted((Path(verified_dir) / "images").glob("*.jpg"))
+    labels_dir = Path(verified_dir) / "labels"
 
-# -------------------------------------- Evaluation mô hình YOLOv11 -------------------------------------- 
-def generate_eval_yaml(eval_data_dir: str) -> Path:
-    """Tạo YAML cho tập đánh giá."""
-    yaml_path = Path(eval_data_dir) / "eval_data.yaml"
+    random.shuffle(images)
+    split_idx = int(len(images) * train_ratio)
+
+    # Tạo thư mục
+    train_img = Path(verified_dir) / "finetune/train/images"
+    train_lbl = Path(verified_dir) / "finetune/train/labels"
+    val_img = Path(verified_dir) / "finetune/val/images"
+    val_lbl = Path(verified_dir) / "finetune/val/labels"
+
+    for p in [train_img, train_lbl, val_img, val_lbl]:
+        p.mkdir(parents=True, exist_ok=True)
+
+    # Copy file
+    for img in images[:split_idx]:
+        lbl = labels_dir / f"{img.stem}.txt"
+        shutil.copy(img, train_img / img.name)
+        shutil.copy(lbl, train_lbl / lbl.name)
+
+    for img in images[split_idx:]:
+        lbl = labels_dir / f"{img.stem}.txt"
+        shutil.copy(img, val_img / img.name)
+        shutil.copy(lbl, val_lbl / lbl.name)
+
+    return train_img.parent, val_img.parent
+
+
+def generate_data_yaml(train_val_dir: Path) -> Path:
+    """
+    Tạo file data.yaml trỏ tới thư mục train/val đã chia.
+    """
+    yaml_path = train_val_dir.parent / "data.yaml"
     with open(yaml_path, "w") as f:
-        f.write(f"""
-path: {eval_data_dir}
-train: original_frames
-val: original_frames
+        f.write(f"""path: {train_val_dir.parent.resolve()}
+train: train/images
+val: val/images
 names:
     0: Person
     1: SafetyShoes
@@ -431,46 +413,83 @@ names:
 """)
     return yaml_path
 
-def evaluate_model(model_path: str, eval_data_dir: str, imgsz: int = 640) -> float: # TODO: ngày mai xem lại pipeline evaluation của yolo 
-    """Đánh giá mAP50 của một mô hình YOLO."""
-    yaml_path = generate_eval_yaml(eval_data_dir)
+
+def fine_tune_yolo(
+    verified_data_dir: str = "./src/verified_samples",
+    old_model_path: str = "./src/data/Cam360/Weight/Train_Fulian_25_04_20252/weights/best.pt",
+    save_dir: str = "./trained_new_yolo",
+    epochs: int = 100,
+    imgsz: int = 640
+) -> Optional[Path]:
+    """
+    Fine-tune YOLOv11 từ tập ảnh đã xác thực.
+    """
+    if not check_verified_images(verified_data_dir):
+        print("⛔ Not enough verified images to fine-tune.")
+        return None
+
+    train_val_dir, _ = split_dataset(verified_data_dir)
+    data_yaml = generate_data_yaml(train_val_dir)
+
+    model = YOLO(old_model_path)
+    model.train(
+        data=str(data_yaml),
+        epochs=epochs,
+        imgsz=imgsz,
+        save=True,
+        save_dir=save_dir,
+        name="",
+    )
+
+    best_model = Path(save_dir) / "weights" / "best.pt"
+    return best_model if best_model.exists() else None
+
+
+def evaluate_model(model_path: str, data_yaml_path: str, imgsz: int = 640) -> float:
+    """
+    Đánh giá mô hình YOLO và trả về mAP50.
+    """
     model = YOLO(model_path)
-    metrics = model.val(data=str(yaml_path), imgsz=imgsz)
+    metrics = model.val(data=data_yaml_path, imgsz=imgsz)
     return metrics.box.map50
+
 
 def replace_model_if_better(
     old_model_path: str,
     new_model_path: str,
-    eval_data_dir: str
+    eval_data_yaml: str
 ) -> None:
-    """So sánh 2 mô hình và thay thế nếu mô hình mới tốt hơn."""
+    """
+    So sánh model mới và cũ theo mAP50 và thay thế nếu cần.
+    """
     print("\n🔍 Evaluating current model...")
-    old_map = evaluate_model(old_model_path, eval_data_dir)
+    old_map = evaluate_model(old_model_path, eval_data_yaml)
 
     print("\n🔍 Evaluating new model...")
-    new_map = evaluate_model(new_model_path, eval_data_dir)
+    new_map = evaluate_model(new_model_path, eval_data_yaml)
 
     print(f"\n📊 mAP50 - old: {old_map:.4f} | new: {new_map:.4f}")
 
     if new_map > old_map:
-        print("✅ New model is better. Replacing old model.")
+        print("✅ New model is better. Replacing old model...")
         os.replace(new_model_path, old_model_path)
     else:
         print("⛔ Old model is better. Keeping original.")
 
+
 def run_pipeline():
     """
-    Pipeline tổng hợp:
-    - Fine-tune YOLO trên ảnh xác thực
-    - Đánh giá mAP
-    - Thay thế model nếu tốt hơn
+    Pipeline:
+    - Chia 80/20 dữ liệu xác thực
+    - Fine-tune YOLOv11
+    - So sánh và thay thế nếu model mới tốt hơn
     """
-    verified_data = "./verified_samples"
-    eval_data = "./evals/Train_Fulian_25_04_20252"
-    old_model = "./data/Cam360/Weight/Train_Fulian_25_04_20252/weights/best.pt"
+    verified_dir = "./src/verified_samples"
+    eval_data_yaml = "./src/verified_samples/finetune/data.yaml"
+    old_model = "./src/data/Cam360/Weight/Train_Fulian_25_04_20252/weights/best.pt"
 
     best_model = fine_tune_yolo(
-        verified_data_dir=verified_data,
+        verified_data_dir=verified_dir,
         old_model_path=old_model
     )
 
@@ -478,11 +497,9 @@ def run_pipeline():
         replace_model_if_better(
             old_model_path=old_model,
             new_model_path=str(best_model),
-            eval_data_dir=eval_data
+            eval_data_yaml=eval_data_yaml
         )
-# -------------------------------------- Evaluation mô hình YOLOv11 -------------------------------------- 
-
-
+# -------------------------------------- Fine-tune & Eval mô hình YOLOv11 -------------------------------------- 
 
 if __name__ == "__main__":
     fire.Fire({
@@ -495,11 +512,8 @@ if __name__ == "__main__":
         # Chuẩn hóa lại format yolov11
         "convert_labels": convert_labels_to_yolo_format, 
 
-        # Fine-tune YOLOv11 từ các ảnh đã xác thực
+        # Run pipeline finetune & evaluation
         "run_pipeline": run_pipeline,
-        "fine_tune_yolo": fine_tune_yolo,
-
-        # Evaluation mô hình YOLOv11
-        "evaluate_model": evaluate_model,
-        "replace_model_if_better": replace_model_if_better,
     })
+
+# TODO: Tìm hiểu các tham số và đánh giá xem mô hình nào tốt hơn 

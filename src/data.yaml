@@ -1,0 +1,15 @@
+
+path: /home/chwenjun225/projects/Selarepa/src
+train: train/images
+val: val/images
+names:
+    0: Person
+    1: SafetyShoes
+    2: ESDSlippers
+    3: Head
+    4: BlueUniform
+    5: WhiteUniform
+    6: BlackUniform
+    7: OtherUniform
+    8: Bending
+    9: FireExtinguisher

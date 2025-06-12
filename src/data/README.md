@@ -1,1 +1,0 @@
-chứa dữ liệu test từ cam360, pcb-visual
