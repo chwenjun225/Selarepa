@@ -41,7 +41,7 @@ def write_yolo_txt_with_labels(
         result,
         txt_filename: Path,
         class_labels: dict[int, str],
-        use_label_str: bool = False, # False --> cho label bằng ID, True --> cho label bằng chữ 
+        use_label_str: bool = False, # False --> cho label bằng ID, True --> cho label bằng string  
         conf_threshold: float = 0.4
     ) -> None:
     """
@@ -89,9 +89,6 @@ def process_videos(input_folder: str, output_folder: str, model_path: str) -> No
     txt_path.mkdir(parents=True, exist_ok=True)
 
     yolo = YOLO(model_path)
-    video_files = collect_video_paths(str(input_path))
-
-    global_frame_index = 0
 
     # Danh sách nhãn class
     class_labels = {
@@ -106,6 +103,10 @@ def process_videos(input_folder: str, output_folder: str, model_path: str) -> No
         8: "Bending",           # 8: "Cúi",             8: "弯腰 (Wānyāo)",
         9: "FireExtinguisher",  # 9: "Bình Cứu Hỏa",    9: "灭火器 (Mièhuǒqì)",  
     }
+    yolo.model.names = class_labels # Gán nhãn chữ vào mô hình
+
+    video_files = collect_video_paths(str(input_path))
+    global_frame_index = 0
 
     for video_file in video_files:
         cap = cv2.VideoCapture(str(video_file))
@@ -123,7 +124,7 @@ def process_videos(input_folder: str, output_folder: str, model_path: str) -> No
             cv2.imwrite(str(orig_filename), frame)
 
             # Save annotated frame
-            annotated_frame = result.plot()
+            annotated_frame = result.plot(line_width=3, font_size=3)
             yolo_filename = yolo_path / f"{global_frame_index:06d}.jpg"
             cv2.imwrite(str(yolo_filename), annotated_frame)
 
@@ -515,5 +516,3 @@ if __name__ == "__main__":
         # Run pipeline finetune & evaluation
         "run_pipeline": run_pipeline,
     })
-
-# TODO: Tìm hiểu các tham số và đánh giá xem mô hình nào tốt hơn 
