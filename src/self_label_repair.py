@@ -141,8 +141,10 @@ def inference_cam360_dataset() -> None:
     """Run a predefined command to evaluate all videos using the process_videos script."""
     process_videos(
         input_folder=f"{os.getcwd()}/data/Cam360",
-        output_folder=f"{os.getcwd()}/evals/Train_Fulian_25_04_20252",
-        model_path=f"{os.getcwd()}/data/Cam360/Weight/Train_Fulian_25_04_20252/weights/best.pt")
+        # output_folder=f"{os.getcwd()}/evals/Train_Fulian_25_04_20252",
+        # model_path=f"{os.getcwd()}/data/Cam360/Weight/Train_Fulian_25_04_20252/weights/best.pt")
+        output_folder="/home/chwenjun225/projects/Selarepa/src/inferenced_by_weight_trained_system", 
+        model_path="/home/chwenjun225/projects/Selarepa/src/runs/detect/weights_trained_by_system/weights/best.pt")
 # -------------------------------------- Inference with cam360 datasets -------------------------------------- 
 
 

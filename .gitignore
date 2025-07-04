@@ -6,6 +6,7 @@ relabel_data/
 verified_samples/
 runs/
 /src/evals/
+inferenced_by_weight_trained_system/
 yolo11n.pt
 
 # Byte-compiled / optimized / DLL files
